@@ -50,6 +50,18 @@ jobs:
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-testing-only
           OSRM_URL: http://localhost:5000
 
+      - name: Security audit (npm audit)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
   frontend:
     name: Frontend Tests & Lint
     runs-on: ubuntu-latest
@@ -77,6 +89,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Security audit (npm audit)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
@@ -95,3 +111,15 @@ jobs:
         run: |
           docker-compose config --quiet
           echo "docker-compose.yml is valid"
+
+      - name: Scan Docker images for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'reliefnet-backend:latest,reliefnet-frontend:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

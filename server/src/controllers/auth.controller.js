@@ -5,13 +5,15 @@ import { AppError } from '../middleware/error.middleware.js';
 
 const signAccessToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_ACCESS_EXPIRY || '15m'
+    expiresIn: process.env.JWT_ACCESS_EXPIRY || '15m',
+    algorithm: 'HS256'
   });
 };
 
 const signRefreshToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d'
+    expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d',
+    algorithm: 'HS256'
   });
 };
 
@@ -208,8 +210,8 @@ export const changePassword = catchAsync(async (req, res) => {
     throw new AppError('Current and new password required', 400);
   }
   
-  if (newPassword.length < 8) {
-    throw new AppError('New password must be at least 8 characters', 400);
+  if (newPassword.length < 12) {
+    throw new AppError('New password must be at least 12 characters', 400);
   }
   
   const user = await User.findById(req.userId).select('+password');

@@ -24,7 +24,7 @@ router.get('/', [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('lowStock').optional().isIn(['true', 'false']),
-  query('search').optional().trim()
+  query('search').optional().trim().isLength({ max: 100 }).withMessage('Search term too long')
 ], validate, getInventory);
 
 router.get('/summary', getInventorySummary);
@@ -44,24 +44,24 @@ router.get('/camp/:campId', validateObjectId('campId'), getCampInventory);
 router.post('/', authorize('admin', 'coordinator'), [
   body('campId').isMongoId().withMessage('Valid camp ID required'),
   body('category').isIn(['food', 'water', 'medicine', 'shelter', 'clothing', 'sanitation', 'other']).withMessage('Invalid category'),
-  body('itemName').trim().notEmpty().withMessage('Item name required'),
+  body('itemName').trim().notEmpty().withMessage('Item name required').isLength({ max: 100 }).withMessage('Item name too long'),
   body('quantity').optional().isInt({ min: 0 }).withMessage('Quantity must be non-negative'),
   body('unit').optional().isIn(['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters']),
   body('minimumThreshold').optional().isInt({ min: 0 }),
   body('expiryDate').optional().isISO8601(),
-  body('batchNumber').optional().trim(),
+  body('batchNumber').optional().trim().isLength({ max: 100 }).withMessage('Batch number too long'),
   body('notes').optional().trim().isLength({ max: 500 })
 ], validate, createInventoryItem);
 
 router.post('/camp/:campId/bulk', authorize('admin', 'coordinator'), validateObjectId('campId'), [
-  body('items').isArray({ min: 1 }).withMessage('Items array required'),
-  body('items.*.itemName').trim().notEmpty(),
+  body('items').isArray({ min: 1, max: 100 }).withMessage('Items array required (max 100)'),
+  body('items.*.itemName').trim().notEmpty().isLength({ max: 100 }).withMessage('Item name required, max 100 chars'),
   body('items.*.category').isIn(['food', 'water', 'medicine', 'shelter', 'clothing', 'sanitation', 'other']),
   body('items.*.quantity').optional().isInt({ min: 0 }),
   body('items.*.unit').optional().isIn(['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters']),
   body('items.*.minimumThreshold').optional().isInt({ min: 0 }),
   body('items.*.expiryDate').optional().isISO8601(),
-  body('items.*.batchNumber').optional().trim(),
+  body('items.*.batchNumber').optional().trim().isLength({ max: 100 }).withMessage('Batch number too long'),
   body('items.*.notes').optional().trim().isLength({ max: 500 })
 ], validate, bulkUpdateInventory);
 
@@ -70,7 +70,7 @@ router.patch('/:id', authorize('admin', 'coordinator'), validateObjectId(), [
   body('minimumThreshold').optional().isInt({ min: 0 }),
   body('unit').optional().isIn(['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters']),
   body('expiryDate').optional().isISO8601(),
-  body('batchNumber').optional().trim(),
+  body('batchNumber').optional().trim().isLength({ max: 100 }).withMessage('Batch number too long'),
   body('notes').optional().trim().isLength({ max: 500 })
 ], validate, updateInventoryItem);
 
