@@ -108,7 +108,7 @@ ReliefNet/
 ```
 
 ## API Endpoints
-
+## (Done in Postman)
 ### Authentication
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login
@@ -165,11 +165,11 @@ ReliefNet/
 
 ## User Roles
 
-| Role | Permissions |
-|------|-------------|
-| Coordinator | Manage own camp inventory, create requests |
-| Dispatcher | View all transfers, assign drivers, update status |
-| Admin | Full access, manage camps/users, system config |
+| Role        | Permissions                                       |
+|------|----------------------------------------------------------|
+| Coordinator | Manage own camp inventory, create requests        |
+| Dispatcher  | View all transfers, assign drivers, update status |
+| Admin       | Full access, manage camps/users, system config    |
 
 ## Matching Algorithm
 
