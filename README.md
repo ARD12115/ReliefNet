@@ -1,4 +1,4 @@
-# ReliefNet - Aid, precisely delivered
+# ReliefNet - Aid Precisely Delivered
 
 A real-time relief coordination platform that matches supply surplus at one relief camp with unmet demand at another, and recommends optimal delivery routes to move aid efficiently during disaster response.
 
