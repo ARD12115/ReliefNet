@@ -5,6 +5,7 @@ node_modules/
 
 # Testing
 coverage/
+/postman
 
 # Production builds
 dist/
@@ -16,6 +17,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+.postman
 
 # Logs
 npm-debug.log*
