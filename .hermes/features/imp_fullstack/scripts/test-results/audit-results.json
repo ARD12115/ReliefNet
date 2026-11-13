@@ -1,0 +1,35 @@
+{
+  "url": "http://example.com",
+  "timestamp": "2026-11-09T07:58:00.751Z",
+  "viewports": [
+    {
+      "viewport": "1920x1080",
+      "screenshot": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\test-results\\screenshot-1920x1080.png",
+      "consoleErrors": [],
+      "networkErrors": []
+    },
+    {
+      "viewport": "375x667",
+      "screenshot": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\test-results\\screenshot-375x667.png",
+      "consoleErrors": [],
+      "networkErrors": []
+    }
+  ],
+  "visionAnalysis": [
+    {
+      "viewport": "1920x1080",
+      "screenshot": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\test-results\\screenshot-1920x1080.png",
+      "prompt": "Analyze this webpage for: layout alignment issues, color contrast problems, overlapping elements, missing alt text, broken images, responsive design issues, visual hierarchy problems, and any UI bugs. Return specific issues with element descriptions and suggested fixes.",
+      "status": "pending_vision_analysis"
+    },
+    {
+      "viewport": "375x667",
+      "screenshot": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\test-results\\screenshot-375x667.png",
+      "prompt": "Analyze this webpage for: layout alignment issues, color contrast problems, overlapping elements, missing alt text, broken images, responsive design issues, visual hierarchy problems, and any UI bugs. Return specific issues with element descriptions and suggested fixes.",
+      "status": "pending_vision_analysis"
+    }
+  ],
+  "consoleErrors": [],
+  "networkErrors": [],
+  "accessibility": null
+}

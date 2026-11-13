@@ -27,7 +27,7 @@ const transferSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['food', 'water', 'medicine', 'shelter', 'clothing', 'sanitation', 'other'],
+    enum: ['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation'],
     required: true
   },
   quantity: {

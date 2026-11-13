@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { body, query } from 'express-validator';
 import { 
   getTransfers, 
   getTransfer, 
@@ -35,7 +35,7 @@ router.post('/manual', authorize('admin', 'dispatcher'), [
   body('toCampId').isMongoId().withMessage('Valid destination camp ID required'),
   body('requestId').optional().isMongoId(),
   body('itemName').trim().notEmpty().withMessage('Item name required').isLength({ max: 100 }).withMessage('Item name too long'),
-  body('category').isIn(['food', 'water', 'medicine', 'shelter', 'clothing', 'sanitation', 'other']).withMessage('Invalid category'),
+  body('category').isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']).withMessage('Invalid category'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
   body('unit').optional().isIn(['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters']),
   body('priority').optional().isIn(['low', 'medium', 'high', 'critical']),

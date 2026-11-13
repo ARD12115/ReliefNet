@@ -1,0 +1,17 @@
+{
+  "test": {
+    "pattern": ["src/**/*.{js,jsx,ts,tsx}", "tests/**/*.{js,ts}"],
+    "command": "npm test",
+    "debounce": 500,
+    "ignore": ["node_modules", "dist", ".git", "coverage", "*.test.js", "*.spec.js"],
+    "runOnStart": true
+  },
+  "lint": {
+    "pattern": ["src/**/*.{js,jsx,ts,tsx}"],
+    "command": "npm run lint",
+    "typecheck": "npm run typecheck",
+    "debounce": 300,
+    "ignore": ["node_modules", "dist", ".git", "coverage"],
+    "runOnStart": true
+  }
+}

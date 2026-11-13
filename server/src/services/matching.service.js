@@ -1,4 +1,3 @@
-import Camp from '../models/Camp.js';
 import InventoryItem from '../models/InventoryItem.js';
 import Request from '../models/Request.js';
 import Transfer from '../models/Transfer.js';

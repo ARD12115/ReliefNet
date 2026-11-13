@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { body, query } from 'express-validator';
 import { 
   createRequest, 
   getRequests, 
@@ -17,7 +17,7 @@ router.use(authenticate);
 
 router.get('/', [
   query('campId').optional().isMongoId(),
-  query('category').optional().isIn(['food', 'water', 'medicine', 'shelter', 'clothing', 'sanitation', 'other']),
+  query('category').optional().isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']),
   query('status').optional().isIn(['open', 'partial', 'matched', 'fulfilled', 'cancelled']),
   query('urgency').optional().isIn(['low', 'medium', 'high', 'critical']),
   query('page').optional().isInt({ min: 1 }),
@@ -31,7 +31,7 @@ router.get('/:id', validateObjectId(), getRequest);
 
 router.post('/', authorize('admin', 'coordinator'), [
   body('campId').isMongoId().withMessage('Valid camp ID required'),
-  body('category').isIn(['food', 'water', 'medicine', 'shelter', 'clothing', 'sanitation', 'other']).withMessage('Invalid category'),
+  body('category').isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']).withMessage('Invalid category'),
   body('itemName').trim().notEmpty().withMessage('Item name required').isLength({ max: 100 }).withMessage('Item name too long'),
   body('quantityNeeded').isInt({ min: 1 }).withMessage('Quantity needed must be at least 1'),
   body('unit').optional().isIn(['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters']),

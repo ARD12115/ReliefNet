@@ -14,7 +14,7 @@ import {
 import { useInventoryStore } from '../store/inventoryStore';
 import { useCampStore } from '../store/campStore';
 import { formatNumber, getCategoryColor, getCategoryIcon, getStatusColor } from '../utils/helpers';
-import InventoryForm from './InventoryForm';
+import InventoryForm from '../components/InventoryForm';
 import toast from 'react-hot-toast';
 
 const InventoryPage = () => {
@@ -56,7 +56,7 @@ const InventoryPage = () => {
   };
 
   const categories = [
-    'food', 'water', 'medicine', 'shelter', 'clothing', 'sanitation', 'other'
+    'food', 'water', 'medicine', 'shelter', 'other'
   ];
 
   return (

@@ -68,15 +68,13 @@ export const getPriorityColor = (priority) => {
 
 export const getCategoryIcon = (category) => {
   const icons = {
-    food: '🍚',
-    water: '💧',
-    medicine: '💊',
-    shelter: '🏠',
-    clothing: '👕',
-    sanitation: '🧼',
-    other: '📦'
+    food: 'Utensils',
+    water: 'Droplet',
+    medicine: 'Pill',
+    shelter: 'Home',
+    other: 'Package'
   };
-  return icons[category] || '📦';
+  return icons[category] || 'Package';
 };
 
 export const getCategoryColor = (category) => {
@@ -85,8 +83,6 @@ export const getCategoryColor = (category) => {
     water: 'text-blue-600 bg-blue-100',
     medicine: 'text-red-600 bg-red-100',
     shelter: 'text-green-600 bg-green-100',
-    clothing: 'text-purple-600 bg-purple-100',
-    sanitation: 'text-orange-600 bg-orange-100',
     other: 'text-slate-600 bg-slate-100'
   };
   return colors[category] || 'text-slate-600 bg-slate-100';

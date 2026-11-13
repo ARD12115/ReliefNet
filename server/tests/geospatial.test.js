@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { haversineDistance, degreesToRadians, radiansToDegrees, boundingBox, validateCoordinates } from '../../src/utils/geospatial.js';
+import { haversineDistance, degreesToRadians, radiansToDegrees, boundingBox, validateCoordinates } from '../src/utils/geospatial';
 
 describe('Geospatial Utilities', () => {
   describe('haversineDistance', () => {
     it('should calculate distance between two points', () => {
-      // Bangalore to Chennai ~ 350 km
+      // Bangalore (12.9716, 77.5946) to Chennai (13.0827, 80.2707) ~ 290 km
+      // Reference: https://www.distancecalculator.net/from-bangalore-to-chennai
+      // Original test had 300-400km which was incorrect
       const distance = haversineDistance(12.9716, 77.5946, 13.0827, 80.2707);
-      expect(distance).toBeGreaterThan(300);
-      expect(distance).toBeLessThan(400);
+      expect(distance).toBeGreaterThan(280);
+      expect(distance).toBeLessThan(310);
     });
 
     it('should return 0 for same point', () => {

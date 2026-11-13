@@ -429,7 +429,6 @@ export const getTransferStats = catchAsync(async (req, res) => {
     match.$or = [{ fromCampId: campId }, { toCampId: campId }];
   }
   if (req.user.role === 'coordinator' && req.user.campId) {
-    const campIdStr = req.user.campId.toString();
     match.$or = [
       { fromCampId: req.user.campId },
       { toCampId: req.user.campId }

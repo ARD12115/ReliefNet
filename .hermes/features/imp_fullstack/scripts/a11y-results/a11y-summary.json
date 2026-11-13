@@ -1,0 +1,34 @@
+{
+  "url": "http://example.com",
+  "timestamp": "2026-11-09T07:58:10.862Z",
+  "viewports": [
+    {
+      "viewport": "1920x1080",
+      "summary": {
+        "violations": 0,
+        "passes": 3,
+        "incomplete": 0,
+        "inapplicable": 0
+      },
+      "details": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\a11y-results\\a11y-1920x1080.json",
+      "screenshot": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\a11y-results\\a11y-screenshot-1920x1080.png"
+    },
+    {
+      "viewport": "375x667",
+      "summary": {
+        "violations": 0,
+        "passes": 3,
+        "incomplete": 0,
+        "inapplicable": 0
+      },
+      "details": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\a11y-results\\a11y-375x667.json",
+      "screenshot": "E:\\Hackathon and work\\ReliefNet\\.hermes\\features\\imp_fullstack\\scripts\\a11y-results\\a11y-screenshot-375x667.png"
+    }
+  ],
+  "summary": {
+    "violations": 0,
+    "passes": 6,
+    "incomplete": 0,
+    "inapplicable": 0
+  }
+}

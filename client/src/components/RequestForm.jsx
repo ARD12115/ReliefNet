@@ -60,8 +60,6 @@ const RequestForm = ({ initialData, camps, onClose, onSuccess }) => {
     { value: 'water', label: 'Water' },
     { value: 'medicine', label: 'Medicine' },
     { value: 'shelter', label: 'Shelter' },
-    { value: 'clothing', label: 'Clothing' },
-    { value: 'sanitation', label: 'Sanitation' },
     { value: 'other', label: 'Other' }
   ];
 
@@ -72,7 +70,7 @@ const RequestForm = ({ initialData, camps, onClose, onSuccess }) => {
     { value: 'critical', label: 'Critical' }
   ];
 
-  const units = ['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'];
+  const units = ['units', 'kg', 'liters'];
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

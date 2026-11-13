@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { body, query } from 'express-validator';
 import { createCamp, getCamps, getCamp, updateCamp, deleteCamp, getNearbyCamps, getCampStats } from '../controllers/camp.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { validate, validateObjectId } from '../utils/validate.js';

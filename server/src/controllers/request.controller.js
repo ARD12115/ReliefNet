@@ -1,6 +1,5 @@
 import Request from '../models/Request.js';
 import Camp from '../models/Camp.js';
-import InventoryItem from '../models/InventoryItem.js';
 import Transfer from '../models/Transfer.js';
 import { catchAsync } from '../middleware/error.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';

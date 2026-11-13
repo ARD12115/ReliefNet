@@ -65,13 +65,11 @@ const InventoryForm = ({ initialData, onClose, onSuccess }) => {
     { value: 'water', label: 'Water' },
     { value: 'medicine', label: 'Medicine' },
     { value: 'shelter', label: 'Shelter' },
-    { value: 'clothing', label: 'Clothing' },
-    { value: 'sanitation', label: 'Sanitation' },
     { value: 'other', label: 'Other' }
   ];
 
   const units = [
-    'units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'
+    'units', 'kg', 'liters'
   ];
 
   return (

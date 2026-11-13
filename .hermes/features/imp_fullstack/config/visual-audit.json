@@ -1,0 +1,30 @@
+{
+  "visionPrompt": "Analyze this webpage for: layout alignment issues, color contrast problems, overlapping elements, missing alt text, broken images, responsive design issues, visual hierarchy problems, and any UI bugs. Return specific issues with element descriptions and suggested fixes.",
+  "viewports": [
+    { "width": 1920, "height": 1080, "name": "desktop" },
+    { "width": 1366, "height": 768, "name": "laptop" },
+    { "width": 768, "height": 1024, "name": "tablet" },
+    { "width": 375, "height": 667, "name": "mobile" }
+  ],
+  "checks": [
+    "layout-alignment",
+    "color-contrast",
+    "overlapping-elements",
+    "missing-alt-text",
+    "broken-images",
+    "responsive-design",
+    "visual-hierarchy",
+    "console-errors",
+    "network-errors"
+  ],
+  "thresholds": {
+    "colorContrastRatio": 4.5,
+    "maxConsoleErrors": 0,
+    "maxNetworkErrors": 0
+  },
+  "excludeSelectors": [
+    ".dev-tools-overlay",
+    ".vite-hmr-badge",
+    "[data-testid='dev-only']"
+  ]
+}

@@ -1,9 +1,10 @@
 import http from 'http';
 import dotenv from 'dotenv';
-import app from './app.js';
+import createApp from './app.js';
 import connectDB from './config/db.js';
 import { initializeSocketService } from './services/socket.service.js';
 import { startMatchingCron } from './services/matching.service.js';
+import { shutdownRateLimiters } from './middleware/rateLimiter.js';
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+    
+    // Create Express app (initializes rate limiters with Redis)
+    const app = await createApp();
     
     // Create HTTP server
     const server = http.createServer(app);
@@ -43,6 +47,8 @@ const startServer = async () => {
       console.log(`\nReceived ${signal}. Shutting down gracefully...`);
       server.close(async () => {
         console.log('HTTP server closed');
+        await shutdownRateLimiters();
+        console.log('Rate limiters shut down');
         process.exit(0);
       });
       

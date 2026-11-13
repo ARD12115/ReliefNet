@@ -1,19 +1,28 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute, { PublicRoute, AdminRoute, DispatcherRoute, CoordinatorRoute, AnyAuthRoute } from './components/ProtectedRoute';
-import Login from './pages/Login';
-import CoordinatorDashboard from './pages/CoordinatorDashboard';
-import InventoryPage from './pages/InventoryPage';
-import RequestsPage from './pages/RequestsPage';
-import TransfersPage from './pages/TransfersPage';
-import DispatchDashboard from './pages/DispatchDashboard';
-import AdminDashboard from './pages/AdminDashboard';
+
+// Lazy load pages for code-splitting
+const Login = lazy(() => import('./pages/Login'));
+const CoordinatorDashboard = lazy(() => import('./pages/CoordinatorDashboard'));
+const InventoryPage = lazy(() => import('./pages/InventoryPage'));
+const RequestsPage = lazy(() => import('./pages/RequestsPage'));
+const TransfersPage = lazy(() => import('./pages/TransfersPage'));
+const DispatchDashboard = lazy(() => import('./pages/DispatchDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
+  </div>
+);
 
 const App = () => {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
         {/* Public routes */}
         <Route path="/login" element={
           <PublicRoute>
@@ -61,6 +70,7 @@ const App = () => {
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };

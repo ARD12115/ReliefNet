@@ -1,40 +1,106 @@
 import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import { createClient } from 'redis';
 
-export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  message: { 
-    success: false, 
-    message: 'Too many authentication attempts. Please try again in 15 minutes.' 
-  },
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_REQUIRED = process.env.REDIS_REQUIRED === 'true';
+
+let redisClient;
+let redisReady = false;
+
+const getRedisClient = async () => {
+  if (redisClient && redisReady) return redisClient;
+  
+  redisClient = createClient({ url: REDIS_URL });
+  redisClient.on('error', (err) => {
+    console.error('Rate limiter Redis error:', err.message);
+    redisReady = false;
+  });
+  redisClient.on('connect', () => {
+    redisReady = true;
+  });
+  
+  try {
+    await redisClient.connect();
+  } catch (err) {
+    if (REDIS_REQUIRED) {
+      console.error('Rate limiter: Redis connection required but unavailable');
+      throw err;
+    }
+    console.warn('Rate limiter: Redis unavailable, falling back to memory store');
+    return null;
+  }
+  
+  return redisClient;
+};
+
+export const shutdownRateLimiters = async () => {
+  if (redisClient && redisReady) {
+    await redisClient.quit();
+    redisClient = null;
+    redisReady = false;
+  }
+};
+
+const createRedisStore = async () => {
+  const client = await getRedisClient();
+  if (!client) return undefined;
+  
+  return new RedisStore({
+    sendCommand: (...args) => client.sendCommand(args),
+  });
+};
+
+const WINDOW_15M = 15 * 60 * 1000;
+const WINDOW_1H = 60 * 60 * 1000;
+
+const baseConfig = {
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     res.status(429).json({
       success: false,
-      message: 'Too many authentication attempts. Please try again in 15 minutes.'
+      message: 'Too many requests. Please try again later.',
     });
+  },
+};
+
+let authRateLimiter;
+let apiRateLimiter;
+let strictRateLimiter;
+
+export const initializeRateLimiters = async () => {
+  const store = await createRedisStore();
+  
+  const common = { ...baseConfig, store };
+  
+  authRateLimiter = rateLimit({
+    ...common,
+    windowMs: WINDOW_15M,
+    max: 5,
+    message: { success: false, message: 'Too many authentication attempts. Please try again in 15 minutes.' },
+  });
+  
+  apiRateLimiter = rateLimit({
+    ...common,
+    windowMs: WINDOW_15M,
+    max: 100,
+    message: { success: false, message: 'Too many API requests. Please try again in 15 minutes.' },
+  });
+  
+  strictRateLimiter = rateLimit({
+    ...common,
+    windowMs: WINDOW_1H,
+    max: 30,
+    message: { success: false, message: 'Too many attempts. Please try again in an hour.' },
+  });
+  
+  return { authRateLimiter, apiRateLimiter, strictRateLimiter };
+};
+
+export const getRateLimiters = () => {
+  if (!authRateLimiter || !apiRateLimiter || !strictRateLimiter) {
+    throw new Error('Rate limiters not initialized. Call initializeRateLimiters() first.');
   }
-});
-
-export const apiRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { 
-    success: false, 
-    message: 'Too many requests. Please try again later.' 
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-export const strictRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 attempts per hour for sensitive ops
-  message: { 
-    success: false, 
-    message: 'Too many attempts. Please try again in an hour.' 
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+  return { authRateLimiter, apiRateLimiter, strictRateLimiter };
+};

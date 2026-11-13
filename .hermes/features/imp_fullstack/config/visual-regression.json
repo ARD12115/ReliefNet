@@ -1,0 +1,20 @@
+{
+  "baselineDir": "./visual-baseline",
+  "diffDir": "./visual-diff",
+  "viewports": [
+    { "width": 1920, "height": 1080, "name": "desktop" },
+    { "width": 1366, "height": 768, "name": "laptop" },
+    { "width": 768, "height": 1024, "name": "tablet" },
+    { "width": 375, "height": 667, "name": "mobile" }
+  ],
+  "threshold": 0.01,
+  "includeAA": true,
+  "ignoreRegions": [
+    { "selector": "[data-testid='dynamic-content']", "reason": "Content changes dynamically" },
+    { "selector": ".timestamp", "reason": "Time changes on each render" }
+  ],
+  "waitForSelector": null,
+  "fullPage": false,
+  "failOnDiff": true,
+  "updateBaselineOnFail": false
+}

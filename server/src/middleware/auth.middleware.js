@@ -25,6 +25,14 @@ export const authenticate = async (req, res, next) => {
       });
     }
     
+    // Check token version for invalidation
+    if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token invalidated. Please login again.' 
+      });
+    }
+    
     req.user = user;
     req.userId = user._id;
     next();
@@ -82,6 +90,12 @@ export const optionalAuth = async (req, res, next) => {
     const user = await User.findById(decoded.userId).select('-password -refreshToken');
     
     if (user && user.isActive) {
+      // Check token version for invalidation
+      // Note: optionalAuth silently ignores invalid tokens (doesn't attach user)
+      // while authenticate returns 401. This is intentional for optional auth.
+      if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
+        return next();
+      }
       req.user = user;
       req.userId = user._id;
     }

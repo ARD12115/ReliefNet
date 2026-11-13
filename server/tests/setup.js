@@ -75,19 +75,3 @@ global.testUtils = {
     ...overrides
   })
 };
-
-// Suppress console.log during tests unless debugging
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
-
-beforeAll(() => {
-  if (!process.env.DEBUG_TESTS) {
-    console.log = jest.fn();
-    console.error = jest.fn();
-  }
-});
-
-afterAll(() => {
-  console.log = originalConsoleLog;
-  console.error = originalConsoleError;
-});

@@ -1,0 +1,24 @@
+{
+  "tags": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"],
+  "excludeSelectors": [
+    ".dev-tools-overlay",
+    ".vite-hmr-badge",
+    "[data-testid='dev-only']"
+  ],
+  "viewports": [
+    { "width": 1920, "height": 1080, "name": "desktop" },
+    { "width": 375, "height": 667, "name": "mobile" }
+  ],
+  "waitForSelector": null,
+  "failOnViolations": true,
+  "rules": {
+    "color-contrast": { "enabled": true },
+    "image-alt": { "enabled": true },
+    "label": { "enabled": true },
+    "heading-order": { "enabled": true },
+    "landmark-one-main": { "enabled": true },
+    "region": { "enabled": true },
+    "skip-link": { "enabled": true },
+    "focus-order-semantics": { "enabled": true }
+  }
+}

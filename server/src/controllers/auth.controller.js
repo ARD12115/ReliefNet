@@ -1,10 +1,12 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { catchAsync } from '../middleware/error.middleware.js';
 import User from '../models/User.js';
 import { AppError } from '../middleware/error.middleware.js';
+import { validatePassword } from '../utils/password.js';
 
-const signAccessToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+const signAccessToken = (userId, tokenVersion) => {
+  return jwt.sign({ userId, tokenVersion }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_ACCESS_EXPIRY || '15m',
     algorithm: 'HS256'
   });
@@ -17,12 +19,27 @@ const signRefreshToken = (userId) => {
   });
 };
 
+const hashRefreshToken = async (token) => {
+  return bcrypt.hash(token, 12);
+};
+
+const verifyRefreshTokenHash = async (token, hash) => {
+  return bcrypt.compare(token, hash);
+};
+
 const setRefreshTokenCookie = (res, token) => {
   res.cookie('refreshToken', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+};
+
+const revokeAllUserTokens = async (userId) => {
+  await User.findByIdAndUpdate(userId, { 
+    refreshToken: null,
+    $inc: { tokenVersion: 1 }
   });
 };
 
@@ -50,11 +67,11 @@ export const register = catchAsync(async (req, res) => {
   });
   
   // Generate tokens
-  const accessToken = signAccessToken(user._id);
+  const accessToken = signAccessToken(user._id, user.tokenVersion);
   const refreshToken = signRefreshToken(user._id);
   
-  // Store refresh token
-  user.refreshToken = refreshToken;
+  // Store hashed refresh token
+  user.refreshToken = await hashRefreshToken(refreshToken);
   await user.save();
   
   setRefreshTokenCookie(res, refreshToken);
@@ -93,11 +110,11 @@ export const login = catchAsync(async (req, res) => {
   }
   
   // Generate tokens
-  const accessToken = signAccessToken(user._id);
+  const accessToken = signAccessToken(user._id, user.tokenVersion);
   const refreshToken = signRefreshToken(user._id);
   
-  // Store refresh token
-  user.refreshToken = refreshToken;
+  // Store hashed refresh token
+  user.refreshToken = await hashRefreshToken(refreshToken);
   user.lastLoginAt = new Date();
   await user.save();
   
@@ -120,7 +137,7 @@ export const refresh = catchAsync(async (req, res) => {
     throw new AppError('Refresh token required', 401);
   }
   
-  // Verify refresh token
+  // Verify refresh token signature
   let decoded;
   try {
     decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
@@ -128,18 +145,26 @@ export const refresh = catchAsync(async (req, res) => {
     throw new AppError('Invalid or expired refresh token', 401);
   }
   
-  // Find user and verify stored refresh token
+  // Find user and verify stored refresh token hash
   const user = await User.findById(decoded.userId).select('+refreshToken');
-  if (!user || user.refreshToken !== refreshToken) {
+  if (!user || !user.refreshToken) {
     throw new AppError('Invalid refresh token', 401);
   }
   
-  // Generate new tokens
-  const newAccessToken = signAccessToken(user._id);
+  const isValid = await verifyRefreshTokenHash(refreshToken, user.refreshToken);
+  
+  if (!isValid) {
+    // Token reuse detected - revoke all tokens for this user
+    await revokeAllUserTokens(user._id);
+    throw new AppError('Invalid refresh token - possible token reuse detected', 401);
+  }
+  
+  // Generate new tokens (rotation)
+  const newAccessToken = signAccessToken(user._id, user.tokenVersion);
   const newRefreshToken = signRefreshToken(user._id);
   
-  // Update stored refresh token
-  user.refreshToken = newRefreshToken;
+  // Update stored refresh token hash
+  user.refreshToken = await hashRefreshToken(newRefreshToken);
   await user.save();
   
   setRefreshTokenCookie(res, newRefreshToken);
@@ -155,7 +180,7 @@ export const refresh = catchAsync(async (req, res) => {
 export const logout = catchAsync(async (req, res) => {
   // Clear refresh token from user
   if (req.userId) {
-    await User.findByIdAndUpdate(req.userId, { refreshToken: null });
+    await revokeAllUserTokens(req.userId);
   }
   
   res.clearCookie('refreshToken', {
@@ -205,28 +230,30 @@ export const updateProfile = catchAsync(async (req, res) => {
 
 export const changePassword = catchAsync(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  
+
   if (!currentPassword || !newPassword) {
     throw new AppError('Current and new password required', 400);
   }
-  
-  if (newPassword.length < 12) {
-    throw new AppError('New password must be at least 12 characters', 400);
+
+  // Validate new password using shared utility
+  const validation = validatePassword(newPassword);
+  if (!validation.valid) {
+    throw new AppError(validation.errors[0], 400);
   }
-  
+
   const user = await User.findById(req.userId).select('+password');
   if (!user) {
     throw new AppError('User not found', 404);
   }
-  
+
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) {
     throw new AppError('Current password is incorrect', 400);
   }
-  
+
   user.password = newPassword;
   await user.save();
-  
+
   res.json({
     success: true,
     message: 'Password changed successfully'

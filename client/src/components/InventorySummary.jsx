@@ -1,8 +1,15 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, AlertTriangle, TrendingDown, CheckCircle, XCircle } from 'lucide-react';
+import { 
+  Package, 
+  AlertTriangle, 
+  TrendingDown, 
+  CheckCircle, 
+  XCircle 
+} from 'lucide-react';
 import { useInventoryStore } from '../store/inventoryStore';
 import { formatNumber } from '../utils/helpers';
+import { CategoryIcon } from './CategoryIcon';
 
 const InventorySummary = ({ campId }) => {
   const { summary, groupedItems, isLoading } = useInventoryStore();
@@ -18,13 +25,11 @@ const InventorySummary = ({ campId }) => {
   }
 
   const categories = [
-    { key: 'food', label: 'Food', icon: '🍚', color: 'text-amber-600 bg-amber-100' },
-    { key: 'water', label: 'Water', icon: '💧', color: 'text-blue-600 bg-blue-100' },
-    { key: 'medicine', label: 'Medicine', icon: '💊', color: 'text-red-600 bg-red-100' },
-    { key: 'shelter', label: 'Shelter', icon: '🏠', color: 'text-green-600 bg-green-100' },
-    { key: 'clothing', label: 'Clothing', icon: '👕', color: 'text-purple-600 bg-purple-100' },
-    { key: 'sanitation', label: 'Sanitation', icon: '🧼', color: 'text-orange-600 bg-orange-100' },
-    { key: 'other', label: 'Other', icon: '📦', color: 'text-slate-600 bg-slate-100' }
+    { key: 'food', label: 'Food', color: 'text-amber-600 bg-amber-100' },
+    { key: 'water', label: 'Water', color: 'text-blue-600 bg-blue-100' },
+    { key: 'medicine', label: 'Medicine', color: 'text-red-600 bg-red-100' },
+    { key: 'shelter', label: 'Shelter', color: 'text-green-600 bg-green-100' },
+    { key: 'other', label: 'Other', color: 'text-slate-600 bg-slate-100' }
   ];
 
   const categoryData = categories.map(cat => {
@@ -77,7 +82,9 @@ const InventorySummary = ({ campId }) => {
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">{cat.icon}</span>
+                <span className="text-2xl">
+                  <CategoryIcon category={cat.key} className="w-6 h-6" />
+                </span>
                 <span className="font-medium text-slate-900">{cat.label}</span>
               </div>
               <div className="text-2xl font-bold text-slate-900">{formatNumber(cat.totalQuantity)}</div>
