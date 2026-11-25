@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
@@ -10,25 +11,25 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=reliefnet
-      - POSTGRES_HOST_AUTH_METHOD=trust
+      # POSTGRES_HOST_AUTH_METHOD=trust — only for local dev, remove in production
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: reliefnet-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: reliefnet-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
   osrm:
     image: ghcr.io/project-osrm/osrm-backend:v5.27.0
@@ -65,7 +66,7 @@ services:
       - "4000:4000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/reliefnet
+      - DATABASE_URL=postgresql://postgres:***@postgres:5432/reliefnet
       - REDIS_URL=redis://redis:6379
       - OSRM_URL=http://osrm:5000
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
@@ -74,8 +75,6 @@ services:
       - CLIENT_URL=http://localhost:5173
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     volumes:
       - ./server:/app
@@ -99,4 +98,3 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
