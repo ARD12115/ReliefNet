@@ -24,6 +24,11 @@ const InventoryItem = sequelize.define('InventoryItem', {
     defaultValue: 0,
     min: 0,
   },
+  reservedQuantity: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    min: 0,
+  },
   unit: {
     type: DataTypes.ENUM('units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'),
     defaultValue: 'units',
@@ -45,11 +50,22 @@ const InventoryItem = sequelize.define('InventoryItem', {
   lastUpdatedBy: {
     type: DataTypes.UUID,
   },
+  deletedAt: {
+    type: DataTypes.DATE,
+  },
 }, {
-  indexes: [{ fields: ['campId', 'category', 'itemName'], unique: true }],
+  indexes: [
+    { fields: ['campId', 'category', 'itemName'], unique: true },
+    { fields: ['deletedAt'] },
+  ],
+  defaultScope: {
+    where: { deletedAt: null },
+  },
+  paranoid: false,
   timestamps: true,
   updatedAt: 'updatedAt',
   createdAt: 'createdAt',
+  deletedAt: 'deletedAt',
 });
 
 InventoryItem.prototype.getIsLowStock = function () {
@@ -61,7 +77,11 @@ InventoryItem.prototype.getIsOutOfStock = function () {
 };
 
 InventoryItem.prototype.getSurplusQuantity = function () {
-  return Math.max(0, this.quantity - this.minimumThreshold);
+  return Math.max(0, this.quantity - this.minimumThreshold - this.reservedQuantity);
+};
+
+InventoryItem.prototype.getAvailableQuantity = function () {
+  return Math.max(0, this.quantity - this.minimumThreshold - this.reservedQuantity);
 };
 
 export default InventoryItem;

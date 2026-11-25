@@ -1,65 +1,102 @@
 services:
   postgres:
     image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-reliefnet}
+    container_name: reliefnet-postgres
+    ports:
+      - "5432:5432"
     volumes:
-      - reliefnet_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=reliefnet
+      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
-      retries: 10
-    restart: unless-stopped
+      retries: 5
 
   redis:
     image: redis:7-alpine
+    container_name: reliefnet-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    restart: unless-stopped
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.0
+    container_name: reliefnet-osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: >
+      bash -c "
+        apt-get update && apt-get install -y --no-install-recommends curl 2>/dev/null || true;
+        if [ ! -f /data/india-latest.osrm ] && command -v curl >/dev/null 2>&1; then
+          echo 'Downloading India map extract...';
+          curl -L -o /data/india-latest.osm.pbf 'https://download.geofabrik.de/asia/india-latest.osm.pbf';
+          osrm-extract -p /opt/car.lua /data/india-latest.osm.pbf;
+          osrm-partition /data/india-latest.osrm;
+          osrm-customize /data/india-latest.osrm;
+        fi;
+        osrm-routed --algorithm mld /data/india-latest.osrm || true
+        while true; do sleep 3600; done
+      "
+    healthcheck:
+      test: ["CMD", "sh", "-c", "command -v curl >/dev/null 2>&1 && curl -f http://localhost:5000/route/v1/driving/77.5946,12.9716;77.6046,12.9816 || true"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   backend:
     build:
       context: ./server
+      dockerfile: Dockerfile
+    container_name: reliefnet-backend
+    ports:
+      - "4000:4000"
     environment:
-      NODE_ENV: production
-      PORT: 4000
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/reliefnet
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-local-only-change-this-jwt-secret}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-only-change-this-refresh-secret}
-      CLIENT_URL: ${CLIENT_URL:-http://localhost:8080}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/reliefnet
+      - REDIS_URL=redis://redis:6379
+      - OSRM_URL=http://osrm:5000
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_REFRESH_SECRET=your-refresh-secret-change-in-production
+      - PORT=4000
+      - CLIENT_URL=http://localhost:5173
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 20s
-    restart: unless-stopped
+    volumes:
+      - ./server:/app
+      - /app/node_modules
 
   frontend:
     build:
       context: ./client
-      args:
-        VITE_API_URL: /api
-        VITE_SOCKET_URL: /
+      dockerfile: Dockerfile
+    container_name: reliefnet-frontend
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:4000
+      - VITE_SOCKET_URL=http://localhost:4000
     depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
+      - backend
+    volumes:
+      - ./client:/app
+      - /app/node_modules
 
 volumes:
-  reliefnet_postgres_data:
+  postgres_data:
+  redis_data:

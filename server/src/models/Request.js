@@ -56,11 +56,32 @@ const Request = sequelize.define('Request', {
   fulfilledAt: {
     type: DataTypes.DATE,
   },
+  deletedAt: {
+    type: DataTypes.DATE,
+  },
 }, {
   indexes: [
     { fields: ['campId', 'status'] },
     { fields: ['category', 'urgency', 'status'] },
+    { fields: ['deletedAt'] },
   ],
+  defaultScope: {
+    where: { deletedAt: null },
+  },
+  paranoid: false,
+  timestamps: true,
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt',
+  deletedAt: 'deletedAt',
+  validate: {
+    fulfillmentDoesNotExceedNeed() {
+      if (this.quantityFulfilled !== null && this.quantityFulfilled !== undefined &&
+          this.quantityNeeded !== null && this.quantityNeeded !== undefined &&
+          this.quantityFulfilled > this.quantityNeeded) {
+        throw new Error('quantityFulfilled cannot exceed quantityNeeded');
+      }
+    },
+  },
   hooks: {
     beforeSave: (request) => {
       request.updatedAt = new Date();
@@ -72,9 +93,6 @@ const Request = sequelize.define('Request', {
       }
     },
   },
-  timestamps: true,
-  updatedAt: 'updatedAt',
-  createdAt: 'createdAt',
 });
 
 Request.prototype.getQuantityRemaining = function () {

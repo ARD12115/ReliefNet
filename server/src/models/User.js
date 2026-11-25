@@ -45,6 +45,9 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
   },
+  deletedAt: {
+    type: DataTypes.DATE,
+  },
 }, {
   hooks: {
     beforeSave: async (user) => {
@@ -63,11 +66,14 @@ const User = sequelize.define('User', {
   },
   defaultScope: {
     attributes: { exclude: ['password', 'refreshToken'] },
+    where: { deletedAt: null },
   },
-  indexes: [{ fields: ['email'], unique: true }],
+  indexes: [{ fields: ['email'], unique: true }, { fields: ['deletedAt'] }],
+  paranoid: false,
   timestamps: true,
   updatedAt: 'updatedAt',
   createdAt: 'createdAt',
+  deletedAt: 'deletedAt',
 });
 
 export default User;

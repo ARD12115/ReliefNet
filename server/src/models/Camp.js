@@ -48,11 +48,31 @@ const Camp = sequelize.define('Camp', {
   managedBy: {
     type: DataTypes.UUID,
   },
+  deletedAt: {
+    type: DataTypes.DATE,
+  },
 }, {
-  indexes: [{ fields: ['latitude', 'longitude'] }],
+  indexes: [
+    { fields: ['latitude', 'longitude'] },
+    { fields: ['deletedAt'] },
+  ],
+  defaultScope: {
+    where: { deletedAt: null },
+  },
+  paranoid: false,
   timestamps: true,
   updatedAt: 'updatedAt',
   createdAt: 'createdAt',
+  deletedAt: 'deletedAt',
+  validate: {
+    populationWithinCapacity() {
+      if (this.currentPopulation !== null && this.currentPopulation !== undefined &&
+          this.capacity !== null && this.capacity !== undefined &&
+          this.currentPopulation > this.capacity) {
+        throw new Error('currentPopulation cannot exceed capacity');
+      }
+    },
+  },
 });
 
 Camp.prototype.getLat = function () {

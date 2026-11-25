@@ -84,15 +84,24 @@ const Transfer = sequelize.define('Transfer', {
   createdBy: {
     type: DataTypes.UUID,
   },
+  deletedAt: {
+    type: DataTypes.DATE,
+  },
 }, {
   indexes: [
     { fields: ['fromCampId', 'status'] },
     { fields: ['toCampId', 'status'] },
     { fields: ['status', 'priority'] },
+    { fields: ['deletedAt'] },
   ],
+  defaultScope: {
+    where: { deletedAt: null },
+  },
+  paranoid: false,
   timestamps: true,
   updatedAt: 'updatedAt',
   createdAt: 'createdAt',
+  deletedAt: 'deletedAt',
 });
 
 Transfer.prototype.getIsActive = function () {
