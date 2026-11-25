@@ -29,7 +29,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: "postgresql://${POSTGRES_USER:[REDACTED]@postgres:5432/${POSTGRES_DB:-reliefnet}"
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/reliefnet
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-local-only-change-this-jwt-secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-only-change-this-refresh-secret}
