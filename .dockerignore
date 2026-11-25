@@ -1,0 +1,15 @@
+.git
+.github
+.hermes
+node_modules
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+osrm-data
+*.log
+README.md
+*.md

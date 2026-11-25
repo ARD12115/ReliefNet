@@ -1,125 +1,102 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const transferSchema = new mongoose.Schema({
+const CATEGORIES = ['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation'];
+const UNITS = ['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'];
+const STATUSES = ['proposed', 'assigned', 'in_transit', 'delivered', 'cancelled', 'failed'];
+const PRIORITIES = ['low', 'medium', 'high', 'critical'];
+
+const Transfer = sequelize.define('Transfer', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
   fromCampId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Camp',
-    required: true,
-    index: true
+    type: DataTypes.UUID,
+    allowNull: false,
   },
   toCampId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Camp',
-    required: true,
-    index: true
+    type: DataTypes.UUID,
+    allowNull: false,
   },
   requestId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Request',
-    required: true,
-    index: true
+    type: DataTypes.UUID,
+    allowNull: false,
   },
   itemName: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
+    type: DataTypes.STRING(100),
+    allowNull: false,
   },
   category: {
-    type: String,
-    enum: ['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation'],
-    required: true
+    type: DataTypes.ENUM(CATEGORIES),
+    allowNull: false,
   },
   quantity: {
-    type: Number,
-    required: true,
-    min: 1
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    min: 1,
   },
   unit: {
-    type: String,
-    enum: ['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'],
-    default: 'units'
+    type: DataTypes.ENUM(UNITS),
+    defaultValue: 'units',
   },
   routeDistanceKm: {
-    type: Number,
-    default: 0
+    type: DataTypes.DOUBLE,
+    defaultValue: 0,
   },
   routeDurationMinutes: {
-    type: Number,
-    default: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
   },
   routeGeometry: {
-    type: {
-      type: String,
-      enum: ['LineString']
-    },
-    coordinates: [[Number]] // GeoJSON LineString
+    type: DataTypes.JSONB,
   },
   status: {
-    type: String,
-    enum: ['proposed', 'assigned', 'in_transit', 'delivered', 'cancelled', 'failed'],
-    default: 'proposed',
-    index: true
+    type: DataTypes.ENUM(STATUSES),
+    defaultValue: 'proposed',
   },
   priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'critical'],
-    default: 'medium'
+    type: DataTypes.ENUM(PRIORITIES),
+    defaultValue: 'medium',
   },
   assignedTo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    type: DataTypes.UUID,
   },
   assignedAt: {
-    type: Date
+    type: DataTypes.DATE,
   },
   dispatchedAt: {
-    type: Date
+    type: DataTypes.DATE,
   },
   deliveredAt: {
-    type: Date
+    type: DataTypes.DATE,
   },
   cancelledAt: {
-    type: Date
+    type: DataTypes.DATE,
   },
   cancellationReason: {
-    type: String,
-    trim: true,
-    maxlength: 500
+    type: DataTypes.STRING(500),
   },
   notes: {
-    type: String,
-    trim: true,
-    maxlength: 1000
+    type: DataTypes.TEXT,
   },
   createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    type: DataTypes.UUID,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+}, {
+  indexes: [
+    { fields: ['fromCampId', 'status'] },
+    { fields: ['toCampId', 'status'] },
+    { fields: ['status', 'priority'] },
+  ],
+  timestamps: true,
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt',
 });
 
-transferSchema.index({ fromCampId: 1, status: 1 });
-transferSchema.index({ toCampId: 1, status: 1 });
-transferSchema.index({ status: 1, priority: 1 });
-
-transferSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
-transferSchema.virtual('isActive').get(function() {
+Transfer.prototype.getIsActive = function () {
   return ['proposed', 'assigned', 'in_transit'].includes(this.status);
-});
+};
 
-transferSchema.set('toJSON', { virtuals: true });
-transferSchema.set('toObject', { virtuals: true });
-
-export default mongoose.model('Transfer', transferSchema);
+export default Transfer;

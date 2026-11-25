@@ -1,3 +1,4 @@
+import { Op, Sequelize } from 'sequelize';
 import InventoryItem from '../models/InventoryItem.js';
 import Camp from '../models/Camp.js';
 import { catchAsync } from '../middleware/error.middleware.js';
@@ -6,23 +7,21 @@ import { getSocketService } from '../services/socket.service.js';
 
 export const createInventoryItem = catchAsync(async (req, res) => {
   const { campId, category, itemName, quantity, unit, minimumThreshold, expiryDate, batchNumber, notes } = req.body;
-  
-  // Verify camp exists and user has access
-  const camp = await Camp.findById(campId);
+
+  const camp = await Camp.findByPk(campId);
   if (!camp) {
     throw new AppError('Camp not found', 404);
   }
-  
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== campId) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== campId) {
     throw new AppError('Access denied', 403);
   }
-  
-  // Check if item already exists for this camp/category/name
-  const existing = await InventoryItem.findOne({ campId, category, itemName });
+
+  const existing = await InventoryItem.findOne({ where: { campId, category, itemName } });
   if (existing) {
     throw new AppError('Item already exists for this camp. Use update instead.', 400);
   }
-  
+
   const item = await InventoryItem.create({
     campId,
     category,
@@ -39,10 +38,8 @@ export const createInventoryItem = catchAsync(async (req, res) => {
   const socketService = getSocketService();
   socketService.emitToCamp(campId, 'inventory:updated', item);
   socketService.emitToAdmins('inventory:updated', item);
-  
-  // Trigger matching check
   socketService.emitToMatchingEngine('inventory:changed', { campId, category, itemName });
-  
+
   res.status(201).json({
     success: true,
     message: 'Inventory item created',
@@ -52,32 +49,30 @@ export const createInventoryItem = catchAsync(async (req, res) => {
 
 export const getInventory = catchAsync(async (req, res) => {
   const { campId, category, page = 1, limit = 50, lowStock, search } = req.query;
-  
-  const query = {};
-  if (campId) query.campId = campId;
-  if (category) query.category = category;
+
+  const whereClauses = [];
+  if (campId) whereClauses.push({ campId });
+  if (category) whereClauses.push({ category });
+  if (search) whereClauses.push({ itemName: { [Op.iLike]: `%${search}%` } });
   if (lowStock === 'true') {
-    query.$expr = { $lte: ['$quantity', '$minimumThreshold'] };
+    whereClauses.push(Sequelize.where(Sequelize.col('quantity'), { [Op.lte]: Sequelize.col('minimumThreshold') }));
   }
-  if (search) {
-    query.itemName = { $regex: search, $options: 'i' };
-  }
-  
-  // Coordinator access control
-  if (req.user.role === 'coordinator' && req.user.campId) {
-    query.campId = req.user.campId;
-  }
-  
+  const where = whereClauses.length > 1 ? { [Op.and]: whereClauses } : (whereClauses[0] || {});
+
   const skip = (page - 1) * limit;
-  const items = await InventoryItem.find(query)
-    .populate('campId', 'name location')
-    .populate('lastUpdatedBy', 'name')
-    .skip(skip)
-    .limit(parseInt(limit))
-    .sort({ category: 1, itemName: 1 });
-  
-  const total = await InventoryItem.countDocuments(query);
-  
+  const items = await InventoryItem.findAll({
+    where,
+    include: [
+      { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude'] },
+      { model: require('../models/User.js').default, as: 'lastUpdatedBy', attributes: ['name'] }
+    ],
+    offset: skip,
+    limit: parseInt(limit),
+    order: [['category', 'ASC'], ['itemName', 'ASC']]
+  });
+
+  const total = await InventoryItem.count({ where });
+
   res.json({
     success: true,
     data: {
@@ -94,17 +89,17 @@ export const getInventory = catchAsync(async (req, res) => {
 
 export const getCampInventory = catchAsync(async (req, res) => {
   const { campId } = req.params;
-  
-  // Verify camp access
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== campId) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== campId) {
     throw new AppError('Access denied', 403);
   }
-  
-  const items = await InventoryItem.find({ campId })
-    .populate('lastUpdatedBy', 'name')
-    .sort({ category: 1, itemName: 1 });
-  
-  // Group by category
+
+  const items = await InventoryItem.findAll({
+    where: { campId },
+    include: [{ model: require('../models/User.js').default, as: 'lastUpdatedBy', attributes: ['name'] }],
+    order: [['category', 'ASC'], ['itemName', 'ASC']]
+  });
+
   const grouped = items.reduce((acc, item) => {
     if (!acc[item.category]) {
       acc[item.category] = [];
@@ -112,25 +107,20 @@ export const getCampInventory = catchAsync(async (req, res) => {
     acc[item.category].push(item);
     return acc;
   }, {});
-  
-  // Calculate summary stats
-  const summary = await InventoryItem.aggregate([
-    { $match: { campId: campId } },
-    {
-      $group: {
-        _id: '$category',
-        totalItems: { $sum: 1 },
-        totalQuantity: { $sum: '$quantity' },
-        lowStockCount: {
-          $sum: { $cond: [{ $lte: ['$quantity', '$minimumThreshold'] }, 1, 0] }
-        },
-        outOfStockCount: {
-          $sum: { $cond: [{ $eq: ['$quantity', 0] }, 1, 0] }
-        }
-      }
-    }
-  ]);
-  
+
+  const summary = await InventoryItem.findAll({
+    attributes: [
+      'category',
+      [Sequelize.fn('COUNT', '*'), 'totalItems'],
+      [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
+      [Sequelize.literal('SUM(CASE WHEN quantity <= minimumThreshold THEN 1 ELSE 0 END)'), 'lowStockCount'],
+      [Sequelize.literal('SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount']
+    ],
+    where: { campId },
+    group: ['category'],
+    raw: true
+  });
+
   res.json({
     success: true,
     data: {
@@ -142,19 +132,21 @@ export const getCampInventory = catchAsync(async (req, res) => {
 
 export const updateInventoryItem = catchAsync(async (req, res) => {
   const { quantity, minimumThreshold, unit, expiryDate, batchNumber, notes } = req.body;
-  
-  const item = await InventoryItem.findById(req.params.id).populate('campId');
+
+  const item = await InventoryItem.findByPk(req.params.id, {
+    include: [{ model: Camp, as: 'camp', attributes: ['id', 'name'] }]
+  });
   if (!item) {
     throw new AppError('Inventory item not found', 404);
   }
-  
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== item.campId._id.toString()) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== item.campId) {
     throw new AppError('Access denied', 403);
   }
-  
+
   const previousQuantity = item.quantity;
   const quantityChange = quantity !== undefined ? quantity - previousQuantity : 0;
-  
+
   const updateData = { lastUpdatedBy: req.userId };
   if (quantity !== undefined) updateData.quantity = quantity;
   if (minimumThreshold !== undefined) updateData.minimumThreshold = minimumThreshold;
@@ -162,26 +154,25 @@ export const updateInventoryItem = catchAsync(async (req, res) => {
   if (expiryDate !== undefined) updateData.expiryDate = expiryDate;
   if (batchNumber !== undefined) updateData.batchNumber = batchNumber;
   if (notes !== undefined) updateData.notes = notes;
-  
-  const updatedItem = await InventoryItem.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true, runValidators: true }
-  ).populate('campId', 'name').populate('lastUpdatedBy', 'name');
-  
+
+  const [, [updatedItem]] = await InventoryItem.update(updateData, {
+    where: { id: req.params.id },
+    returning: true,
+    include: [{ model: Camp, as: 'camp', attributes: ['id', 'name'] }, { model: require('../models/User.js').default, as: 'lastUpdatedBy', attributes: ['name'] }]
+  });
+
   const socketService = getSocketService();
-  socketService.emitToCamp(item.campId._id, 'inventory:updated', updatedItem);
+  socketService.emitToCamp(item.campId, 'inventory:updated', updatedItem);
   socketService.emitToAdmins('inventory:updated', updatedItem);
-  
-  // Trigger matching if quantity changed significantly
+
   if (Math.abs(quantityChange) > 0) {
-    socketService.emitToMatchingEngine('inventory:changed', { 
-      campId: item.campId._id, 
-      category: item.category, 
-      itemName: item.itemName 
+    socketService.emitToMatchingEngine('inventory:changed', {
+      campId: item.campId,
+      category: item.category,
+      itemName: item.itemName
     });
   }
-  
+
   res.json({
     success: true,
     message: 'Inventory item updated',
@@ -190,22 +181,24 @@ export const updateInventoryItem = catchAsync(async (req, res) => {
 });
 
 export const deleteInventoryItem = catchAsync(async (req, res) => {
-  const item = await InventoryItem.findById(req.params.id).populate('campId');
+  const item = await InventoryItem.findByPk(req.params.id, {
+    include: [{ model: Camp, as: 'camp', attributes: ['id'] }]
+  });
   if (!item) {
     throw new AppError('Inventory item not found', 404);
   }
-  
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== item.campId._id.toString()) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== item.campId) {
     throw new AppError('Access denied', 403);
   }
-  
-  await InventoryItem.findByIdAndDelete(req.params.id);
-  
+
+  await InventoryItem.destroy({ where: { id: req.params.id } });
+
   const socketService = getSocketService();
-  socketService.emitToCamp(item.campId._id, 'inventory:deleted', { id: req.params.id });
+  socketService.emitToCamp(item.campId, 'inventory:deleted', { id: req.params.id });
   socketService.emitToAdmins('inventory:deleted', { id: req.params.id });
-  socketService.emitToMatchingEngine('inventory:changed', { campId: item.campId._id });
-  
+  socketService.emitToMatchingEngine('inventory:changed', { campId: item.campId });
+
   res.json({
     success: true,
     message: 'Inventory item deleted'
@@ -214,51 +207,39 @@ export const deleteInventoryItem = catchAsync(async (req, res) => {
 
 export const getInventorySummary = catchAsync(async (req, res) => {
   const { campId } = req.query;
-  
+
   const match = campId ? { campId } : {};
   if (req.user.role === 'coordinator' && req.user.campId) {
     match.campId = req.user.campId;
   }
-  
-  const summary = await InventoryItem.aggregate([
-    { $match: match },
-    {
-      $group: {
-        _id: '$category',
-        totalItems: { $sum: 1 },
-        totalQuantity: { $sum: '$quantity' },
-        lowStockCount: {
-          $sum: { $cond: [{ $lte: ['$quantity', '$minimumThreshold'] }, 1, 0] }
-        },
-        outOfStockCount: {
-          $sum: { $cond: [{ $eq: ['$quantity', 0] }, 1, 0] }
-        },
-        totalSurplus: {
-          $sum: { $subtract: ['$quantity', '$minimumThreshold'] }
-        }
-      }
-    },
-    { $sort: { _id: 1 } }
-  ]);
-  
-  const overall = await InventoryItem.aggregate([
-    { $match: match },
-    {
-      $group: {
-        _id: null,
-        totalItems: { $sum: 1 },
-        totalCategories: { $addToSet: '$category' },
-        totalQuantity: { $sum: '$quantity' },
-        lowStockCount: {
-          $sum: { $cond: [{ $lte: ['$quantity', '$minimumThreshold'] }, 1, 0] }
-        },
-        outOfStockCount: {
-          $sum: { $cond: [{ $eq: ['$quantity', 0] }, 1, 0] }
-        }
-      }
-    }
-  ]);
-  
+
+  const summary = await InventoryItem.findAll({
+    attributes: [
+      'category',
+      [Sequelize.fn('COUNT', '*'), 'totalItems'],
+      [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
+      [Sequelize.literal('SUM(CASE WHEN quantity <= minimumThreshold THEN 1 ELSE 0 END)'), 'lowStockCount'],
+      [Sequelize.literal('SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount'],
+      [Sequelize.literal('SUM(quantity - minimumThreshold)'), 'totalSurplus']
+    ],
+    where: match,
+    group: ['category'],
+    order: [['category', 'ASC']],
+    raw: true
+  });
+
+  const overall = await InventoryItem.findAll({
+    attributes: [
+      [Sequelize.fn('COUNT', '*'), 'totalItems'],
+      [Sequelize.literal('COUNT(DISTINCT category)'), 'totalCategories'],
+      [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
+      [Sequelize.literal('SUM(CASE WHEN quantity <= minimumThreshold THEN 1 ELSE 0 END)'), 'lowStockCount'],
+      [Sequelize.literal('SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount']
+    ],
+    where: match,
+    raw: true
+  });
+
   res.json({
     success: true,
     data: {

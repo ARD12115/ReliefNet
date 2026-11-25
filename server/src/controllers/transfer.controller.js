@@ -1,7 +1,7 @@
 import Transfer from '../models/Transfer.js';
 import Request from '../models/Request.js';
 import InventoryItem from '../models/InventoryItem.js';
-import InventoryHistory from '../models/InventoryHistory.js';
+
 import Camp from '../models/Camp.js';
 import User from '../models/User.js';
 import { catchAsync } from '../middleware/error.middleware.js';
@@ -205,20 +205,7 @@ export const updateTransferStatus = catchAsync(async (req, res) => {
       fromInventory.lastUpdatedBy = req.userId;
       await fromInventory.save();
       
-      await InventoryHistory.create({
-        inventoryItemId: fromInventory._id,
-        campId: transfer.fromCampId._id,
-        category: transfer.category,
-        itemName: transfer.itemName,
-        action: 'transfer_out',
-        previousQuantity: prevQty,
-        newQuantity: fromInventory.quantity,
-        quantityChange: -transfer.quantity,
-        unit: transfer.unit,
-        relatedTransferId: transfer._id,
-        performedBy: req.userId,
-        notes: `Transfer ${transfer._id} dispatched`
-      });
+
     }
     
     transfer.dispatchedAt = new Date();
@@ -238,20 +225,7 @@ export const updateTransferStatus = catchAsync(async (req, res) => {
       toInventory.lastUpdatedBy = req.userId;
       await toInventory.save();
       
-      await InventoryHistory.create({
-        inventoryItemId: toInventory._id,
-        campId: transfer.toCampId._id,
-        category: transfer.category,
-        itemName: transfer.itemName,
-        action: 'transfer_in',
-        previousQuantity: prevQty,
-        newQuantity: toInventory.quantity,
-        quantityChange: transfer.quantity,
-        unit: transfer.unit,
-        relatedTransferId: transfer._id,
-        performedBy: req.userId,
-        notes: `Transfer ${transfer._id} delivered`
-      });
+
     } else {
       // Create new inventory item at destination
       toInventory = await InventoryItem.create({
@@ -264,20 +238,7 @@ export const updateTransferStatus = catchAsync(async (req, res) => {
         lastUpdatedBy: req.userId
       });
       
-      await InventoryHistory.create({
-        inventoryItemId: toInventory._id,
-        campId: transfer.toCampId._id,
-        category: transfer.category,
-        itemName: transfer.itemName,
-        action: 'transfer_in',
-        previousQuantity: 0,
-        newQuantity: transfer.quantity,
-        quantityChange: transfer.quantity,
-        unit: transfer.unit,
-        relatedTransferId: transfer._id,
-        performedBy: req.userId,
-        notes: `Transfer ${transfer._id} delivered (new item created)`
-      });
+
     }
     
     // Update request fulfillment
@@ -309,20 +270,7 @@ export const updateTransferStatus = catchAsync(async (req, res) => {
         fromInventory.lastUpdatedBy = req.userId;
         await fromInventory.save();
         
-        await InventoryHistory.create({
-          inventoryItemId: fromInventory._id,
-          campId: transfer.fromCampId._id,
-          category: transfer.category,
-          itemName: transfer.itemName,
-          action: 'adjusted',
-          previousQuantity: prevQty,
-          newQuantity: fromInventory.quantity,
-          quantityChange: transfer.quantity,
-          unit: transfer.unit,
-          relatedTransferId: transfer._id,
-          performedBy: req.userId,
-          notes: `Transfer ${transfer._id} cancelled - inventory restored`
-        });
+
       }
     }
   }
@@ -344,20 +292,7 @@ export const updateTransferStatus = catchAsync(async (req, res) => {
       fromInventory.lastUpdatedBy = req.userId;
       await fromInventory.save();
       
-      await InventoryHistory.create({
-        inventoryItemId: fromInventory._id,
-        campId: transfer.fromCampId._id,
-        category: transfer.category,
-        itemName: transfer.itemName,
-        action: 'adjusted',
-        previousQuantity: prevQty,
-        newQuantity: fromInventory.quantity,
-        quantityChange: transfer.quantity,
-        unit: transfer.unit,
-        relatedTransferId: transfer._id,
-        performedBy: req.userId,
-        notes: `Transfer ${transfer._id} failed - inventory restored`
-      });
+
     }
   }
   

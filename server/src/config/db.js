@@ -1,17 +1,20 @@
-import mongoose from 'mongoose';
+import { Sequelize } from 'sequelize';
+
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
+});
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    await sequelize.authenticate();
+    console.log('PostgreSQL Connected');
   } catch (error) {
-    console.error(`MongoDB Connection Error: ${error.message}`);
+    console.error('PostgreSQL Connection Error:', error.message);
     process.exit(1);
   }
 };
 
 export default connectDB;
+export { sequelize };

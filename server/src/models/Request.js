@@ -1,101 +1,89 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const requestSchema = new mongoose.Schema({
+const CATEGORIES = ['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation'];
+const UNITS = ['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'];
+const URGENCIES = ['low', 'medium', 'high', 'critical'];
+const STATUSES = ['open', 'partial', 'matched', 'fulfilled', 'cancelled'];
+
+const Request = sequelize.define('Request', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
   campId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Camp',
-    required: true,
-    index: true
+    type: DataTypes.UUID,
+    allowNull: false,
   },
   category: {
-    type: String,
-    enum: ['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation'],
-    required: true,
-    index: true
+    type: DataTypes.ENUM(CATEGORIES),
+    allowNull: false,
   },
   itemName: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
+    type: DataTypes.STRING(100),
+    allowNull: false,
   },
   quantityNeeded: {
-    type: Number,
-    required: true,
-    min: 1
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    min: 1,
   },
   quantityFulfilled: {
-    type: Number,
-    default: 0,
-    min: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    min: 0,
   },
   unit: {
-    type: String,
-    enum: ['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'],
-    default: 'units'
+    type: DataTypes.ENUM(UNITS),
+    defaultValue: 'units',
   },
   urgency: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'critical'],
-    default: 'medium',
-    index: true
+    type: DataTypes.ENUM(URGENCIES),
+    defaultValue: 'medium',
   },
   status: {
-    type: String,
-    enum: ['open', 'partial', 'matched', 'fulfilled', 'cancelled'],
-    default: 'open',
-    index: true
+    type: DataTypes.ENUM(STATUSES),
+    defaultValue: 'open',
   },
   description: {
-    type: String,
-    trim: true,
-    maxlength: 1000
+    type: DataTypes.TEXT,
   },
   requestedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    type: DataTypes.UUID,
+    allowNull: false,
   },
   fulfilledAt: {
-    type: Date
+    type: DataTypes.DATE,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+}, {
+  indexes: [
+    { fields: ['campId', 'status'] },
+    { fields: ['category', 'urgency', 'status'] },
+  ],
+  hooks: {
+    beforeSave: (request) => {
+      request.updatedAt = new Date();
+      if (request.quantityFulfilled >= request.quantityNeeded && request.status !== 'cancelled') {
+        request.status = 'fulfilled';
+        request.fulfilledAt = new Date();
+      } else if (request.quantityFulfilled > 0 && request.status === 'open') {
+        request.status = 'partial';
+      }
+    },
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+  timestamps: true,
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt',
 });
 
-requestSchema.index({ campId: 1, status: 1 });
-requestSchema.index({ category: 1, urgency: 1, status: 1 });
-
-requestSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  
-  // Auto-update status based on fulfillment
-  if (this.quantityFulfilled >= this.quantityNeeded && this.status !== 'cancelled') {
-    this.status = 'fulfilled';
-    this.fulfilledAt = new Date();
-  } else if (this.quantityFulfilled > 0 && this.status === 'open') {
-    this.status = 'partial';
-  }
-  
-  next();
-});
-
-requestSchema.virtual('quantityRemaining').get(function() {
+Request.prototype.getQuantityRemaining = function () {
   return Math.max(0, this.quantityNeeded - this.quantityFulfilled);
-});
+};
 
-requestSchema.virtual('fulfillmentPercentage').get(function() {
+Request.prototype.getFulfillmentPercentage = function () {
   if (this.quantityNeeded === 0) return 100;
   return Math.min(100, Math.round((this.quantityFulfilled / this.quantityNeeded) * 100));
-});
+};
 
-requestSchema.set('toJSON', { virtuals: true });
-requestSchema.set('toObject', { virtuals: true });
-
-export default mongoose.model('Request', requestSchema);
+export default Request;

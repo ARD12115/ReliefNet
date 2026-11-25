@@ -1,87 +1,73 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
 import bcrypt from 'bcryptjs';
+import { sequelize } from '../config/db.js';
 
-const userSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
+    type: DataTypes.STRING(100),
+    allowNull: false,
   },
   email: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING(255),
+    allowNull: false,
     unique: true,
-    lowercase: true,
-    trim: true,
-    maxlength: 255
   },
   password: {
-    type: String,
-    required: true,
-    minlength: 8,
-    select: false
+    type: DataTypes.TEXT,
+    allowNull: false,
   },
   role: {
-    type: String,
-    enum: ['coordinator', 'dispatcher', 'admin'],
-    default: 'coordinator'
+    type: DataTypes.ENUM('coordinator', 'dispatcher', 'admin'),
+    defaultValue: 'coordinator',
   },
   campId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Camp'
+    type: DataTypes.UUID,
   },
   phone: {
-    type: String,
-    trim: true
+    type: DataTypes.STRING,
   },
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
   },
   lastLoginAt: {
-    type: Date
+    type: DataTypes.DATE,
   },
   refreshToken: {
-    type: String,
-    select: false
+    type: DataTypes.TEXT,
   },
   tokenVersion: {
-    type: Number,
-    default: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+}, {
+  hooks: {
+    beforeSave: async (user) => {
+      if (user.changed('password')) {
+        const salt = await bcrypt.genSalt(12);
+        user.password = await bcrypt.hash(user.password, salt);
+      }
+      user.updatedAt = new Date();
+    },
+    beforeCreate: (user) => {
+      user.updatedAt = new Date();
+    },
+    beforeUpdate: (user) => {
+      user.updatedAt = new Date();
+    },
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+  defaultScope: {
+    attributes: { exclude: ['password', 'refreshToken'] },
+  },
+  indexes: [{ fields: ['email'], unique: true }],
+  timestamps: true,
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt',
 });
 
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-userSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-userSchema.methods.toJSON = function() {
-  const obj = this.toObject();
-  delete obj.password;
-  delete obj.refreshToken;
-  return obj;
-};
-
-export default mongoose.model('User', userSchema);
+export default User;

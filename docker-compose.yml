@@ -1,101 +1,67 @@
-version: '3.8'
-
 services:
-  mongodb:
-    image: mongo:7
-    container_name: reliefnet-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+  postgres:
+    image: postgres:15-alpine
     environment:
-      - MONGO_INITDB_DATABASE=reliefnet
+      POSTGRES_USER: ${POSTGRES_USER:-reliefnet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdevpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-reliefnet}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    container_name: reliefnet-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  osrm:
-    image: ghcr.io/project-osrm/osrm-backend:v5.27.0
-    container_name: reliefnet-osrm
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./osrm-data:/data
-    command: >
-      bash -c "
-        if [ ! -f /data/india-latest.osrm ]; then
-          echo 'Downloading India map extract...';
-          wget -q -O /data/india-latest.osm.pbf 'https://download.geofabrik.de/asia/india-latest.osm.pbf';
-          osrm-extract -p /opt/car.lua /data/india-latest.osm.pbf;
-          osrm-partition /data/india-latest.osrm;
-          osrm-customize /data/india-latest.osrm;
-        fi;
-        osrm-routed --algorithm mld /data/india-latest.osrm
-      "
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/route/v1/driving/77.5946,12.9716;77.6046,12.9816"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
 
   backend:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: reliefnet-backend
-    ports:
-      - "4000:4000"
     environment:
-      - NODE_ENV=development
-      - MONGODB_URI=mongodb://mongodb:27017/reliefnet
-      - REDIS_URL=redis://redis:6379
-      - OSRM_URL=http://osrm:5000
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
-      - JWT_REFRESH_SECRET=your-refresh-secret-change-in-production
-      - PORT=4000
-      - CLIENT_URL=http://localhost:5173
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:[REDACTED]@postgres:5432/${POSTGRES_DB:-reliefnet}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-local-only-change-this-jwt-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-only-change-this-refresh-secret}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:8080}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      osrm:
-        condition: service_healthy
-    volumes:
-      - ./server:/app
-      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./client
       dockerfile: Dockerfile
-    container_name: reliefnet-frontend
+      args:
+        VITE_API_URL: /api
+        VITE_SOCKET_URL: /
     ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:4000
-      - VITE_SOCKET_URL=http://localhost:4000
+      - "${APP_PORT:-8080}:80"
     depends_on:
-      - backend
-    volumes:
-      - ./client:/app
-      - /app/node_modules
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
-  mongodb_data:
-  redis_data:
+  postgres_data:

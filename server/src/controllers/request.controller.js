@@ -1,28 +1,28 @@
+import { Op, Sequelize } from 'sequelize';
 import Request from '../models/Request.js';
 import Camp from '../models/Camp.js';
 import Transfer from '../models/Transfer.js';
+import User from '../models/User.js';
 import { catchAsync } from '../middleware/error.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { getSocketService } from '../services/socket.service.js';
 
 export const createRequest = catchAsync(async (req, res) => {
   const { campId, category, itemName, quantityNeeded, unit, urgency, description } = req.body;
-  
-  // Verify camp exists and user has access
-  const camp = await Camp.findById(campId);
+
+  const camp = await Camp.findByPk(campId);
   if (!camp) {
     throw new AppError('Camp not found', 404);
   }
-  
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== campId) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== campId) {
     throw new AppError('Access denied', 403);
   }
-  
-  // Check if camp is evacuating
+
   if (camp.status === 'evacuating' || camp.status === 'evacuated') {
     throw new AppError('Cannot create requests for evacuating/evacuated camps', 400);
   }
-  
+
   const request = await Request.create({
     campId,
     category,
@@ -33,24 +33,26 @@ export const createRequest = catchAsync(async (req, res) => {
     description,
     requestedBy: req.userId
   });
-  
-  const populatedRequest = await Request.findById(request._id)
-    .populate('campId', 'name location')
-    .populate('requestedBy', 'name email');
-  
+
+  const populatedRequest = await Request.findByPk(request.id, {
+    include: [
+      { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude'] },
+      { model: User, as: 'requestedBy', attributes: ['name', 'email'] }
+    ]
+  });
+
   const socketService = getSocketService();
   socketService.emitToCamp(campId, 'request:created', populatedRequest);
   socketService.emitToAdmins('request:created', populatedRequest);
   socketService.emitToDispatchers('request:created', populatedRequest);
-  
-  // Trigger immediate matching check
-  socketService.emitToMatchingEngine('request:created', { 
-    requestId: request._id, 
-    campId, 
-    category, 
-    itemName 
+
+  socketService.emitToMatchingEngine('request:created', {
+    requestId: request.id,
+    campId,
+    category,
+    itemName
   });
-  
+
   res.status(201).json({
     success: true,
     message: 'Request created successfully',
@@ -60,34 +62,40 @@ export const createRequest = catchAsync(async (req, res) => {
 
 export const getRequests = catchAsync(async (req, res) => {
   const { campId, category, status, urgency, page = 1, limit = 20, search } = req.query;
-  
-  const query = {};
-  if (campId) query.campId = campId;
-  if (category) query.category = category;
-  if (status) query.status = status;
-  if (urgency) query.urgency = urgency;
+
+  const whereClauses = [];
+  if (campId) whereClauses.push({ campId });
+  if (category) whereClauses.push({ category });
+  if (status) whereClauses.push({ status });
+  if (urgency) whereClauses.push({ urgency });
   if (search) {
-    query.$or = [
-      { itemName: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } }
-    ];
+    whereClauses.push({
+      [Op.or]: [
+        { itemName: { [Op.iLike]: `%${search}%` } },
+        { description: { [Op.iLike]: `%${search}%` } }
+      ]
+    });
   }
-  
-  // Coordinator access control
+  const where = whereClauses.length > 1 ? { [Op.and]: whereClauses } : (whereClauses[0] || {});
+
   if (req.user.role === 'coordinator' && req.user.campId) {
-    query.campId = req.user.campId;
+    where.campId = req.user.campId;
   }
-  
+
   const skip = (page - 1) * limit;
-  const requests = await Request.find(query)
-    .populate('campId', 'name location status')
-    .populate('requestedBy', 'name email')
-    .skip(skip)
-    .limit(parseInt(limit))
-    .sort({ urgency: -1, createdAt: -1 });
-  
-  const total = await Request.countDocuments(query);
-  
+  const requests = await Request.findAll({
+    where,
+    include: [
+      { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude', 'status'] },
+      { model: User, as: 'requestedBy', attributes: ['name', 'email'] }
+    ],
+    offset: skip,
+    limit: parseInt(limit),
+    order: [['urgency', 'DESC'], ['createdAt', 'DESC']]
+  });
+
+  const total = await Request.count({ where });
+
   res.json({
     success: true,
     data: {
@@ -103,26 +111,31 @@ export const getRequests = catchAsync(async (req, res) => {
 });
 
 export const getRequest = catchAsync(async (req, res) => {
-  const request = await Request.findById(req.params.id)
-    .populate('campId', 'name location status contactPerson contactPhone')
-    .populate('requestedBy', 'name email phone');
-  
+  const request = await Request.findByPk(req.params.id, {
+    include: [
+      { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude', 'status', 'contactPerson', 'contactPhone'] },
+      { model: User, as: 'requestedBy', attributes: ['name', 'email', 'phone'] }
+    ]
+  });
+
   if (!request) {
     throw new AppError('Request not found', 404);
   }
-  
-  // Coordinator access control
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== request.campId._id.toString()) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== request.campId) {
     throw new AppError('Access denied', 403);
   }
-  
-  // Get related transfers
-  const transfers = await Transfer.find({ requestId: request._id })
-    .populate('fromCampId', 'name location')
-    .populate('toCampId', 'name location')
-    .populate('assignedTo', 'name')
-    .sort({ createdAt: -1 });
-  
+
+  const transfers = await Transfer.findAll({
+    where: { requestId: request.id },
+    include: [
+      { model: Camp, as: 'fromCamp', attributes: ['name', 'latitude', 'longitude'] },
+      { model: Camp, as: 'toCamp', attributes: ['name', 'latitude', 'longitude'] },
+      { model: User, as: 'assignedTo', attributes: ['name'] }
+    ],
+    order: [['createdAt', 'DESC']]
+  });
+
   res.json({
     success: true,
     data: { request, transfers }
@@ -131,48 +144,49 @@ export const getRequest = catchAsync(async (req, res) => {
 
 export const updateRequest = catchAsync(async (req, res) => {
   const { quantityNeeded, urgency, description, status } = req.body;
-  
-  const request = await Request.findById(req.params.id);
+
+  const request = await Request.findByPk(req.params.id);
   if (!request) {
     throw new AppError('Request not found', 404);
   }
-  
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== request.campId.toString()) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== request.campId) {
     throw new AppError('Access denied', 403);
   }
-  
-  // Prevent updating fulfilled/cancelled requests
+
   if (['fulfilled', 'cancelled'].includes(request.status)) {
     throw new AppError(`Cannot update ${request.status} request`, 400);
   }
-  
+
   const updateData = {};
   if (quantityNeeded !== undefined) updateData.quantityNeeded = quantityNeeded;
   if (urgency) updateData.urgency = urgency;
   if (description !== undefined) updateData.description = description;
-  if (status && req.user.role === 'admin') updateData.status = status; // Only admin can manually change status
-  
-  const updatedRequest = await Request.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true, runValidators: true }
-  ).populate('campId', 'name location').populate('requestedBy', 'name email');
-  
+  if (status && req.user.role === 'admin') updateData.status = status;
+
+  const [, [updatedRequest]] = await Request.update(updateData, {
+    where: { id: req.params.id },
+    returning: true,
+    include: [
+      { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude'] },
+      { model: User, as: 'requestedBy', attributes: ['name', 'email'] }
+    ]
+  });
+
   const socketService = getSocketService();
   socketService.emitToCamp(request.campId, 'request:updated', updatedRequest);
   socketService.emitToAdmins('request:updated', updatedRequest);
   socketService.emitToDispatchers('request:updated', updatedRequest);
-  
-  // Trigger matching if quantity/urgency changed
+
   if (quantityNeeded !== undefined || urgency) {
-    socketService.emitToMatchingEngine('request:updated', { 
-      requestId: request._id, 
-      campId: request.campId, 
-      category: request.category, 
-      itemName: request.itemName 
+    socketService.emitToMatchingEngine('request:updated', {
+      requestId: request.id,
+      campId: request.campId,
+      category: request.category,
+      itemName: request.itemName
     });
   }
-  
+
   res.json({
     success: true,
     message: 'Request updated',
@@ -182,50 +196,55 @@ export const updateRequest = catchAsync(async (req, res) => {
 
 export const cancelRequest = catchAsync(async (req, res) => {
   const { reason } = req.body;
-  
-  const request = await Request.findById(req.params.id);
+
+  const request = await Request.findByPk(req.params.id);
   if (!request) {
     throw new AppError('Request not found', 404);
   }
-  
-  if (req.user.role === 'coordinator' && req.user.campId?.toString() !== request.campId.toString()) {
+
+  if (req.user.role === 'coordinator' && req.user.campId !== request.campId) {
     throw new AppError('Access denied', 403);
   }
-  
+
   if (['fulfilled', 'cancelled'].includes(request.status)) {
     throw new AppError(`Request is already ${request.status}`, 400);
   }
-  
-  // Check if there are active transfers for this request
-  const activeTransfers = await Transfer.find({
-    requestId: request._id,
-    status: { $in: ['proposed', 'assigned', 'in_transit'] }
+
+  const activeTransfers = await Transfer.findAll({
+    where: {
+      requestId: request.id,
+      status: { [Op.in]: ['proposed', 'assigned', 'in_transit'] }
+    }
   });
-  
+
   if (activeTransfers.length > 0) {
     throw new AppError('Cannot cancel request with active transfers. Cancel transfers first.', 400);
   }
-  
+
   request.status = 'cancelled';
-  request.description = request.description ? `${request.description}\n\nCancelled: ${reason}` : `Cancelled: ${reason}`;
+  request.description = request.description
+    ? `${request.description}\n\nCancelled: ${reason}`
+    : `Cancelled: ${reason}`;
   await request.save();
-  
-  const populatedRequest = await Request.findById(request._id)
-    .populate('campId', 'name location')
-    .populate('requestedBy', 'name email');
-  
+
+  const populatedRequest = await Request.findByPk(request.id, {
+    include: [
+      { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude'] },
+      { model: User, as: 'requestedBy', attributes: ['name', 'email'] }
+    ]
+  });
+
   const socketService = getSocketService();
   socketService.emitToCamp(request.campId, 'request:updated', populatedRequest);
   socketService.emitToAdmins('request:updated', populatedRequest);
   socketService.emitToDispatchers('request:updated', populatedRequest);
-  
-  // Trigger re-matching since this request is now cancelled
-  socketService.emitToMatchingEngine('request:cancelled', { 
-    campId: request.campId, 
-    category: request.category, 
-    itemName: request.itemName 
+
+  socketService.emitToMatchingEngine('request:cancelled', {
+    campId: request.campId,
+    category: request.category,
+    itemName: request.itemName
   });
-  
+
   res.json({
     success: true,
     message: 'Request cancelled',
@@ -235,30 +254,36 @@ export const cancelRequest = catchAsync(async (req, res) => {
 
 export const getRequestStats = catchAsync(async (req, res) => {
   const { campId } = req.query;
-  
+
   const match = {};
   if (campId) match.campId = campId;
   if (req.user.role === 'coordinator' && req.user.campId) {
     match.campId = req.user.campId;
   }
-  
+
   const [byStatus, byUrgency, byCategory, totalOpen, totalFulfilled] = await Promise.all([
-    Request.aggregate([
-      { $match: match },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]),
-    Request.aggregate([
-      { $match: match },
-      { $group: { _id: '$urgency', count: { $sum: 1 } } }
-    ]),
-    Request.aggregate([
-      { $match: match },
-      { $group: { _id: '$category', count: { $sum: 1 }, totalNeeded: { $sum: '$quantityNeeded' } } }
-    ]),
-    Request.countDocuments({ ...match, status: { $in: ['open', 'partial', 'matched'] } }),
-    Request.countDocuments({ ...match, status: 'fulfilled' })
+    Request.findAll({
+      attributes: ['status', [Sequelize.fn('COUNT', '*'), 'count']],
+      where: match,
+      group: ['status'],
+      raw: true
+    }),
+    Request.findAll({
+      attributes: ['urgency', [Sequelize.fn('COUNT', '*'), 'count']],
+      where: match,
+      group: ['urgency'],
+      raw: true
+    }),
+    Request.findAll({
+      attributes: ['category', [Sequelize.fn('COUNT', '*'), 'count'], [Sequelize.fn('SUM', Sequelize.col('quantityNeeded')), 'totalNeeded']],
+      where: match,
+      group: ['category'],
+      raw: true
+    }),
+    Request.count({ where: { ...match, status: { [Op.in]: ['open', 'partial', 'matched'] } } }),
+    Request.count({ where: { ...match, status: 'fulfilled' } })
   ]);
-  
+
   res.json({
     success: true,
     data: {

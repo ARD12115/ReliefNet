@@ -1,86 +1,67 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const inventoryItemSchema = new mongoose.Schema({
+const InventoryItem = sequelize.define('InventoryItem', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
   campId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Camp',
-    required: true,
-    index: true
+    type: DataTypes.UUID,
+    allowNull: false,
   },
   category: {
-    type: String,
-    enum: ['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation'],
-    required: true,
-    index: true
+    type: DataTypes.ENUM('food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation'),
+    allowNull: false,
   },
   itemName: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
+    type: DataTypes.STRING(100),
+    allowNull: false,
   },
   quantity: {
-    type: Number,
-    required: true,
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
     min: 0,
-    default: 0
   },
   unit: {
-    type: String,
-    enum: ['units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'],
-    default: 'units'
+    type: DataTypes.ENUM('units', 'kg', 'liters', 'boxes', 'packs', 'bottles', 'rolls', 'meters'),
+    defaultValue: 'units',
   },
   minimumThreshold: {
-    type: Number,
-    default: 10,
-    min: 0
+    type: DataTypes.INTEGER,
+    defaultValue: 10,
+    min: 0,
   },
   expiryDate: {
-    type: Date
+    type: DataTypes.DATEONLY,
   },
   batchNumber: {
-    type: String,
-    trim: true
+    type: DataTypes.STRING(100),
   },
   notes: {
-    type: String,
-    trim: true,
-    maxlength: 500
+    type: DataTypes.TEXT,
   },
   lastUpdatedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    type: DataTypes.UUID,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+}, {
+  indexes: [{ fields: ['campId', 'category', 'itemName'], unique: true }],
+  timestamps: true,
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt',
 });
 
-inventoryItemSchema.index({ campId: 1, category: 1, itemName: 1 }, { unique: true });
-
-inventoryItemSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
-inventoryItemSchema.virtual('isLowStock').get(function() {
+InventoryItem.prototype.getIsLowStock = function () {
   return this.quantity <= this.minimumThreshold;
-});
+};
 
-inventoryItemSchema.virtual('isOutOfStock').get(function() {
+InventoryItem.prototype.getIsOutOfStock = function () {
   return this.quantity === 0;
-});
+};
 
-inventoryItemSchema.virtual('surplusQuantity').get(function() {
+InventoryItem.prototype.getSurplusQuantity = function () {
   return Math.max(0, this.quantity - this.minimumThreshold);
-});
+};
 
-inventoryItemSchema.set('toJSON', { virtuals: true });
-inventoryItemSchema.set('toObject', { virtuals: true });
-
-export default mongoose.model('InventoryItem', inventoryItemSchema);
+export default InventoryItem;
