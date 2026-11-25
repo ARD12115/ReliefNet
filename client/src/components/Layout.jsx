@@ -168,6 +168,17 @@ const Layout = () => {
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
+          <div className="page-header">
+            <nav className="breadcrumb">
+              <a href="/" className="hover:text-primary-600">Dashboard</a>
+              <span className="breadcrumb-separator">›</span>
+              <span className="text-ink-600">{userNav.find(item => isActive(item.href))?.name || 'Overview'}</span>
+            </nav>
+            <div>
+              <h1 className="page-title">{userNav.find(item => isActive(item.href))?.name || 'Dashboard'}</h1>
+              <p className="page-subtitle">{user?.role === 'admin' ? 'Network-wide oversight and analytics' : user?.role === 'dispatcher' ? 'Prioritized transfers and dispatch' : 'Camp inventory and requests'}</p>
+            </div>
+          </div>
           <Outlet />
         </main>
       </div>

@@ -6,19 +6,26 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   backend:
     name: Backend Tests & Lint
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
+
     services:
       mongodb:
         image: mongo:7
-        ports: 27017:27017
+        ports:
+          - 27017:27017
         options: --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" --health-interval 10s --health-timeout 5s --health-retries 5
       redis:
         image: redis:7-alpine
-        ports: 6379:6379
+        ports:
+          - 6379:6379
         options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
 
     defaults:
@@ -32,11 +39,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run linter
         run: npm run lint
@@ -50,21 +57,22 @@ jobs:
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-testing-only
           OSRM_URL: http://localhost:5000
 
-      - name: Security audit (npm audit)
+      - name: Security audit
         run: npm audit --audit-level=high
         continue-on-error: true
 
-      - name: Run CodeQL Analysis
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
-          
-      - name: Perform CodeQL Analysis
+
+      - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
 
   frontend:
-    name: Frontend Tests & Lint
+    name: Frontend Lint & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -77,7 +85,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
@@ -86,40 +94,72 @@ jobs:
       - name: Run linter
         run: npm run lint
 
-      - name: Build
+      - name: Build frontend
         run: npm run build
 
-      - name: Security audit (npm audit)
+      - name: Security audit
         run: npm audit --audit-level=high
         continue-on-error: true
 
   docker:
-    name: Docker Build
+    name: Docker Build & Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [backend, frontend]
-    
+
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
       - name: Build backend image
-        run: docker build -t reliefnet-backend ./server
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: false
+          load: true
+          tags: reliefnet-backend:ci
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Build frontend image
-        run: docker build -t reliefnet-frontend ./client
-
-      - name: Test docker-compose
-        run: |
-          docker-compose config --quiet
-          echo "docker-compose.yml is valid"
-
-      - name: Scan Docker images for vulnerabilities
-        uses: aquasecurity/trivy-action@master
+        uses: docker/build-push-action@v6
         with:
-          image-ref: 'reliefnet-backend:latest,reliefnet-frontend:latest'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          
-      - name: Upload Trivy results to GitHub Security
+          context: ./client
+          push: false
+          load: true
+          tags: reliefnet-frontend:ci
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: reliefnet-backend:ci
+          format: sarif
+          output: trivy-backend.sarif
+
+      - name: Upload backend scan results
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: reliefnet-frontend:ci
+          format: sarif
+          output: trivy-frontend.sarif
+
+      - name: Upload frontend scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend

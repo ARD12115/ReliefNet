@@ -65,16 +65,24 @@ const baseConfig = {
   },
 };
 
-let authRateLimiter;
-let apiRateLimiter;
-let strictRateLimiter;
+let authRateLimiterImpl;
+export const authRateLimiter = (req, res, next) => {
+  if (!authRateLimiterImpl) return next(new Error('Rate limiters are not initialized'));
+  return authRateLimiterImpl(req, res, next);
+};
+export let apiRateLimiter;
+let strictRateLimiterImpl;
+export const strictRateLimiter = (req, res, next) => {
+  if (!strictRateLimiterImpl) return next(new Error('Rate limiters are not initialized'));
+  return strictRateLimiterImpl(req, res, next);
+};
 
 export const initializeRateLimiters = async () => {
   const store = await createRedisStore();
   
   const common = { ...baseConfig, store };
   
-  authRateLimiter = rateLimit({
+  authRateLimiterImpl = rateLimit({
     ...common,
     windowMs: WINDOW_15M,
     max: 5,
@@ -88,14 +96,14 @@ export const initializeRateLimiters = async () => {
     message: { success: false, message: 'Too many API requests. Please try again in 15 minutes.' },
   });
   
-  strictRateLimiter = rateLimit({
+  strictRateLimiterImpl = rateLimit({
     ...common,
     windowMs: WINDOW_1H,
     max: 30,
     message: { success: false, message: 'Too many attempts. Please try again in an hour.' },
   });
   
-  return { authRateLimiter, apiRateLimiter, strictRateLimiter };
+  return { authRateLimiter: authRateLimiterImpl, apiRateLimiter, strictRateLimiter: strictRateLimiterImpl };
 };
 
 export const getRateLimiters = () => {

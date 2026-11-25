@@ -2,11 +2,11 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-reliefnet}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdevpassword}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-reliefnet}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - reliefnet_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -26,11 +26,10 @@ services:
   backend:
     build:
       context: ./server
-      dockerfile: Dockerfile
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:[REDACTED]@postgres:5432/${POSTGRES_DB:-reliefnet}
+      DATABASE_URL: "postgresql://${POSTGRES_USER:[REDACTED]@postgres:5432/${POSTGRES_DB:-reliefnet}"
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-local-only-change-this-jwt-secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-only-change-this-refresh-secret}
@@ -52,16 +51,15 @@ services:
   frontend:
     build:
       context: ./client
-      dockerfile: Dockerfile
       args:
         VITE_API_URL: /api
         VITE_SOCKET_URL: /
     ports:
-      - "${APP_PORT:-8080}:80"
+      - "${APP_PORT:-8080}:8080"
     depends_on:
       backend:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  reliefnet_postgres_data:

@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Package, 
-  FileText, 
-  Truck, 
-  AlertTriangle, 
-  TrendingUp, 
+import {
+  Package,
+  FileText,
+  Truck,
   MapPin,
-  Clock,
-  CheckCircle,
-  XCircle
+  CheckCircle
 } from 'lucide-react';
 import { useCampStore } from '../store/campStore';
 import { useInventoryStore } from '../store/inventoryStore';
@@ -21,6 +17,7 @@ import { formatDistanceToNow } from 'date-fns';
 import InventorySummary from '../components/InventorySummary';
 import RecentRequests from '../components/RecentRequests';
 import QuickActions from '../components/QuickActions';
+import StatCard from '../components/StatCard';
 
 const CoordinatorDashboard = () => {
   const { user } = useAuthStore();
@@ -150,28 +147,38 @@ const CoordinatorDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, index) => (
-          <div key={index} className="card">
-            <div className="card-body">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">{stat.title}</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-1">{stat.value}</p>
-                  <p className="text-sm text-slate-500 mt-1">{stat.subtitle}</p>
-                </div>
-                <div className={`p-3 rounded-xl ${stat.color}`}>
-                  <stat.icon className="w-6 h-6" />
-                </div>
-              </div>
-              {stat.trend === 'danger' && (
-                <div className="mt-3 flex items-center gap-1 text-danger-600 text-sm">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>Attention needed</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+        <StatCard
+          title="Inventory Items"
+          value={stats.inventory?.overall?.totalItems || 0}
+          subtitle={`${stats.inventory?.overall?.lowStockCount || 0} low stock`}
+          Icon={Package}
+          color="text-primary-600 bg-primary-100"
+          trend={stats.inventory?.overall?.outOfStockCount > 0 ? 'danger' : 'success'}
+        />
+        <StatCard
+          title="Active Requests"
+          value={stats.requests?.totalOpen || 0}
+          subtitle={`${stats.requests?.byUrgency?.find(u => u._id === 'critical')?.count || 0} critical`}
+          Icon={FileText}
+          color="text-danger-600 bg-danger-100"
+          trend={stats.requests?.byUrgency?.find(u => u._id === 'critical')?.count > 0 ? 'danger' : 'neutral'}
+        />
+        <StatCard
+          title="Pending Transfers"
+          value={stats.transfers?.byStatus?.find(s => s._id === 'proposed')?.count || 0}
+          subtitle={`${stats.transfers?.byStatus?.find(s => s._id === 'in_transit')?.count || 0} in transit`}
+          Icon={Truck}
+          color="text-warning-600 bg-warning-100"
+          trend="neutral"
+        />
+        <StatCard
+          title="Delivered This Month"
+          value={stats.transfers?.totalDelivered || 0}
+          subtitle={`${stats.transfers?.totalQuantityDelivered || 0} units moved`}
+          Icon={CheckCircle}
+          color="text-green-600 bg-green-100"
+          trend="success"
+        />
       </div>
 
       {/* Main Content Grid */}
