@@ -49,8 +49,8 @@ export const useCampStore = create((set, get) => ({
     try {
       const response = await api.patch(`/camps/${id}`, data);
       set((state) => ({
-        camps: state.camps.map(c => c._id === id ? response.data.data.camp : c),
-        selectedCamp: state.selectedCamp?._id === id ? response.data.data.camp : state.selectedCamp,
+        camps: state.camps.map(c => c.id === id ? response.data.data.camp : c),
+        selectedCamp: state.selectedCamp?.id === id ? response.data.data.camp : state.selectedCamp,
         isLoading: false
       }));
       return response.data.data.camp;

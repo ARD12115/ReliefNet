@@ -8,7 +8,7 @@ const RecentRequests = ({ campId }) => {
   const { requests, isLoading } = useRequestStore();
   
   const campRequests = campId 
-    ? requests.filter(r => r.campId?._id === campId || r.campId === campId)
+    ? requests.filter(r => r.campId === campId || r.campId?.id === campId)
     : requests;
 
   const openRequests = campRequests
@@ -53,8 +53,8 @@ const RecentRequests = ({ campId }) => {
           <div className="divide-y divide-slate-200">
             {openRequests.map(request => (
               <Link 
-                key={request._id} 
-                to={`/coordinator/requests/${request._id}`}
+                key={request.id}
+                to={`/coordinator/requests/${request.id}`}
                 className="flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors"
               >
                 <div className={`p-2 rounded-lg ${getUrgencyColor(request.urgency)}`}>

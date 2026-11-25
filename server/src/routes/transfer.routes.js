@@ -17,9 +17,9 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', [
-  query('fromCampId').optional().isMongoId(),
-  query('toCampId').optional().isMongoId(),
-  query('requestId').optional().isMongoId(),
+  query('fromCampId').optional().isUUID(),
+  query('toCampId').optional().isUUID(),
+  query('requestId').optional().isUUID(),
   query('status').optional().isIn(['proposed', 'assigned', 'in_transit', 'delivered', 'cancelled', 'failed']),
   query('priority').optional().isIn(['low', 'medium', 'high', 'critical']),
   query('page').optional().isInt({ min: 1 }),
@@ -31,9 +31,9 @@ router.get('/stats', getTransferStats);
 router.get('/:id', validateObjectId(), getTransfer);
 
 router.post('/manual', authorize('admin', 'dispatcher'), [
-  body('fromCampId').isMongoId().withMessage('Valid source camp ID required'),
-  body('toCampId').isMongoId().withMessage('Valid destination camp ID required'),
-  body('requestId').optional().isMongoId(),
+  body('fromCampId').isUUID().withMessage('Valid source camp ID required'),
+  body('toCampId').isUUID().withMessage('Valid destination camp ID required'),
+  body('requestId').optional().isUUID(),
   body('itemName').trim().notEmpty().withMessage('Item name required').isLength({ max: 100 }).withMessage('Item name too long'),
   body('category').isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']).withMessage('Invalid category'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
@@ -43,7 +43,7 @@ router.post('/manual', authorize('admin', 'dispatcher'), [
 ], validate, createManualTransfer);
 
 router.post('/:id/assign', authorize('admin', 'dispatcher'), validateObjectId(), [
-  body('assignedToId').isMongoId().withMessage('Valid assignee ID required')
+  body('assignedToId').isUUID().withMessage('Valid assignee ID required')
 ], validate, assignTransfer);
 
 router.patch('/:id/status', authorize('admin', 'dispatcher', 'coordinator'), validateObjectId(), [

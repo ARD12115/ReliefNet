@@ -18,7 +18,7 @@ const router = Router();
       .matches(/\p{N}/u).withMessage('Password must contain number')
       .matches(/\p{P}/u).withMessage('Password must contain special character'),
     body('role').optional().isIn(['coordinator', 'dispatcher', 'admin']).withMessage('Invalid role'),
-    body('campId').optional().isMongoId().withMessage('Invalid camp ID'),
+    body('campId').optional().isUUID().withMessage('Invalid camp ID'),
     body('phone').optional().isMobilePhone().withMessage('Invalid phone number')
   ], validate, register);
 

@@ -63,14 +63,14 @@ const CoordinatorDashboard = () => {
       const activity = [
         ...(stats.requests.byStatus || []).map(s => ({
           type: 'request',
-          label: `${s._id} requests`,
+          label: `${s.status} requests`,
           count: s.count,
           icon: FileText,
           color: 'text-primary-600'
         })),
         ...(stats.transfers.byStatus || []).map(s => ({
           type: 'transfer',
-          label: `${s._id} transfers`,
+          label: `${s.status} transfers`,
           count: s.count,
           icon: Truck,
           color: 'text-warning-600'
@@ -92,15 +92,15 @@ const CoordinatorDashboard = () => {
     {
       title: 'Active Requests',
       value: stats.requests?.totalOpen || 0,
-      subtitle: `${stats.requests?.byUrgency?.find(u => u._id === 'critical')?.count || 0} critical`,
+      subtitle: `${stats.requests?.byUrgency?.find(u => u.urgency === 'critical')?.count || 0} critical`,
       icon: FileText,
       color: 'text-danger-600 bg-danger-100',
-      trend: stats.requests?.byUrgency?.find(u => u._id === 'critical')?.count > 0 ? 'danger' : 'neutral'
-    },
-    {
+      trend: stats.requests?.byUrgency?.find(u => u.urgency === 'critical')?.count > 0 ? 'danger' : 'neutral'
+      },
+      {
       title: 'Pending Transfers',
-      value: stats.transfers?.byStatus?.find(s => s._id === 'proposed')?.count || 0,
-      subtitle: `${stats.transfers?.byStatus?.find(s => s._id === 'in_transit')?.count || 0} in transit`,
+      value: stats.transfers?.byStatus?.find(s => s.status === 'proposed')?.count || 0,
+      subtitle: `${stats.transfers?.byStatus?.find(s => s.status === 'in_transit')?.count || 0} in transit`,
       icon: Truck,
       color: 'text-warning-600 bg-warning-100',
       trend: 'neutral'

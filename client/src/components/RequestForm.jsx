@@ -8,7 +8,7 @@ const RequestForm = ({ initialData, camps, onClose, onSuccess }) => {
   
   const isEditing = !!initialData;
   const [formData, setFormData] = useState({
-    campId: initialData?.campId?._id || initialData?.campId || '',
+    campId: initialData?.campId || '',
     category: initialData?.category || 'food',
     itemName: initialData?.itemName || '',
     quantityNeeded: initialData?.quantityNeeded || 1,
@@ -35,7 +35,7 @@ const RequestForm = ({ initialData, camps, onClose, onSuccess }) => {
     setIsSubmitting(true);
     try {
       if (isEditing) {
-        await updateRequest(initialData._id, formData);
+        await updateRequest(initialData.id, formData);
         toast.success('Request updated');
       } else {
         await createRequest(formData);
@@ -100,7 +100,7 @@ const RequestForm = ({ initialData, camps, onClose, onSuccess }) => {
                 >
                   <option value="">Select camp...</option>
                   {camps.map(camp => (
-                    <option key={camp._id} value={camp._id}>{camp.name}</option>
+                    <option key={camp.id} value={camp.id}>{camp.name}</option>
                   ))}
                 </select>
                 {errors.campId && <p className="mt-1 text-sm text-danger-600">{errors.campId}</p>}

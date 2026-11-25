@@ -29,7 +29,7 @@ const RequestTable = ({ requests, onView, onEdit, onCancel }) => {
         </thead>
         <tbody>
           {requests.map(request => (
-            <tr key={request._id}>
+            <tr key={request.id}>
               <td>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{getCategoryIcon(request.category)}</span>
@@ -80,7 +80,7 @@ const RequestTable = ({ requests, onView, onEdit, onCancel }) => {
                   )}
                   {onCancel && ['open', 'partial', 'matched'].includes(request.status) && (
                     <button
-                      onClick={() => onCancel(request._id)}
+                      onClick={() => onCancel(request.id)}
                       className="p-2 rounded-lg text-slate-500 hover:bg-danger-50 hover:text-danger-600"
                       title="Cancel"
                     >

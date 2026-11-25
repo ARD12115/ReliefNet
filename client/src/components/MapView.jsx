@@ -51,8 +51,8 @@ const CampMarker = ({ camp, onClick, isSelected }) => {
 };
 
 const TransferLine = ({ transfer, camps }) => {
-  const fromCamp = camps.find(c => c._id === transfer.fromCampId?._id || c._id === transfer.fromCampId);
-  const toCamp = camps.find(c => c._id === transfer.toCampId?._id || c._id === transfer.toCampId);
+  const fromCamp = camps.find(c => c.id === transfer.fromCampId || c.id === transfer.fromCampId);
+  const toCamp = camps.find(c => c.id === transfer.toCampId || c.id === transfer.toCampId);
   
   if (!fromCamp || !toCamp) return null;
   
@@ -179,27 +179,27 @@ const MapView = ({
           
           {/* Transfer routes */}
           {showTransfers && activeTransfers.map(transfer => (
-            <TransferLine key={transfer._id} transfer={transfer} camps={camps} />
+            <TransferLine key={transfer.id} transfer={transfer} camps={camps} />
           ))}
           
           {/* Camps */}
           {camps.map(camp => (
             <CampMarker
-              key={camp._id}
+              key={camp.id}
               camp={camp}
-              isSelected={selectedCamp?._id === camp._id}
+              isSelected={selectedCamp?.id === camp.id}
               onClick={onCampClick}
             />
           ))}
           
           {/* Request markers */}
           {showRequests && openRequests.map(request => {
-            const camp = camps.find(c => c._id === request.campId?._id || c._id === request.campId);
+            const camp = camps.find(c => c.id === request.campId || c.id === request.campId);
             if (!camp) return null;
             
             return (
               <CircleMarker
-                key={request._id}
+                key={request.id}
                 center={[camp.lat, camp.lng]}
                 radius={12}
                 color="#ef4444"

@@ -28,7 +28,7 @@ const InventoryTable = ({ items, onEdit, onDelete, onView }) => {
         </thead>
         <tbody>
           {items.map(item => (
-            <tr key={item._id}>
+            <tr key={item.id}>
               <td>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{getCategoryIcon(item.category)}</span>
@@ -75,7 +75,7 @@ const InventoryTable = ({ items, onEdit, onDelete, onView }) => {
                   )}
                   {onDelete && (
                     <button
-                      onClick={() => onDelete(item._id)}
+                      onClick={() => onDelete(item.id)}
                       className="p-2 rounded-lg text-slate-500 hover:bg-danger-50 hover:text-danger-600"
                       title="Delete"
                     >

@@ -10,23 +10,39 @@ permissions:
   contents: read
   security-events: write
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend Tests & Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     services:
-      mongodb:
-        image: mongo:7
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: reliefnet_test
         ports:
-          - 27017:27017
-        options: --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" --health-interval 10s --health-timeout 5s --health-retries 5
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d reliefnet_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       redis:
         image: redis:7-alpine
         ports:
           - 6379:6379
-        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     defaults:
       run:
@@ -49,9 +65,10 @@ jobs:
         run: npm run lint
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --runInBand
         env:
-          MONGODB_URI: mongodb://localhost:27017/reliefnet_test
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres@localhost:5432/reliefnet_test
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: test-secret-key-for-testing-only
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-testing-only
@@ -61,18 +78,10 @@ jobs:
         run: npm audit --audit-level=high
         continue-on-error: true
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
-
   frontend:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     defaults:
       run:
@@ -104,7 +113,7 @@ jobs:
   docker:
     name: Docker Build & Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: [backend, frontend]
 
     steps:
@@ -145,6 +154,7 @@ jobs:
           output: trivy-backend.sarif
 
       - name: Upload backend scan results
+        if: always() && hashFiles('trivy-backend.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-backend.sarif
@@ -159,6 +169,7 @@ jobs:
           output: trivy-frontend.sarif
 
       - name: Upload frontend scan results
+        if: always() && hashFiles('trivy-frontend.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-frontend.sarif

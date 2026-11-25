@@ -37,8 +37,8 @@ export const useTransferStore = create((set, get) => ({
     try {
       const response = await api.post(`/transfers/${id}/assign`, { assignedToId });
       set((state) => ({
-        transfers: state.transfers.map(t => t._id === id ? response.data.data.transfer : t),
-        selectedTransfer: state.selectedTransfer?._id === id ? response.data.data.transfer : state.selectedTransfer,
+        transfers: state.transfers.map(t => t.id === id ? response.data.data.transfer : t),
+        selectedTransfer: state.selectedTransfer?.id === id ? response.data.data.transfer : state.selectedTransfer,
         isLoading: false
       }));
       return response.data.data.transfer;
@@ -53,8 +53,8 @@ export const useTransferStore = create((set, get) => ({
     try {
       const response = await api.patch(`/transfers/${id}/status`, { status, notes, cancellationReason });
       set((state) => ({
-        transfers: state.transfers.map(t => t._id === id ? response.data.data.transfer : t),
-        selectedTransfer: state.selectedTransfer?._id === id ? response.data.data.transfer : state.selectedTransfer,
+        transfers: state.transfers.map(t => t.id === id ? response.data.data.transfer : t),
+        selectedTransfer: state.selectedTransfer?.id === id ? response.data.data.transfer : state.selectedTransfer,
         isLoading: false
       }));
       return response.data.data.transfer;
@@ -80,7 +80,7 @@ export const useTransferStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await api.delete(`/transfers/${id}`);
-      set((state) => ({ transfers: state.transfers.filter(t => t._id !== id), isLoading: false }));
+      set((state) => ({ transfers: state.transfers.filter(t => t.id !== id), isLoading: false }));
     } catch (error) {
       set({ error: error.response?.data?.message || 'Failed to delete transfer', isLoading: false });
       throw error;

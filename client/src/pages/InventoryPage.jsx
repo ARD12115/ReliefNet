@@ -200,7 +200,7 @@ const InventoryPage = () => {
                 </thead>
                 <tbody>
                   {filteredItems.map(item => (
-                    <tr key={item._id}>
+                    <tr key={item.id}>
                       <td>
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{getCategoryIcon(item.category)}</span>
@@ -235,7 +235,7 @@ const InventoryPage = () => {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(item._id)}
+                            onClick={() => handleDelete(item.id)}
                             className="p-2 rounded-lg text-slate-500 hover:bg-danger-50 hover:text-danger-600"
                             title="Delete"
                           >

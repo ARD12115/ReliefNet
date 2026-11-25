@@ -26,7 +26,7 @@ const TransferCard = ({
   const [showActions, setShowActions] = React.useState(false);
   const [statusNotes, setStatusNotes] = React.useState('');
   
-  const isAssigning = assigningTransferId === transfer._id;
+  const isAssigning = assigningTransferId === transfer.id;
   const canAssign = transfer.status === 'proposed';
   const canUpdateStatus = ['assigned', 'in_transit'].includes(transfer.status);
   
@@ -42,10 +42,10 @@ const TransferCard = ({
     if (status === 'cancelled' || status === 'failed') {
       const reason = prompt(`Reason for ${status}:`);
       if (reason) {
-        onStatusUpdate(transfer._id, status, '', reason);
+        onStatusUpdate(transfer.id, status, '', reason);
       }
     } else {
-      onStatusUpdate(transfer._id, status, statusNotes);
+      onStatusUpdate(transfer.id, status, statusNotes);
     }
     setStatusNotes('');
     setShowActions(false);
@@ -112,12 +112,12 @@ const TransferCard = ({
                 <p className="text-sm font-medium text-slate-700 mb-2">Assign Dispatcher</p>
                 <select
                   className="input w-full sm:w-64"
-                  onChange={(e) => onAssign(transfer._id, e.target.value)}
+                  onChange={(e) => onAssign(transfer.id, e.target.value)}
                   disabled={isAssigning}
                 >
                   <option value="">Select dispatcher...</option>
                   {dispatchers.map(d => (
-                    <option key={d._id} value={d._id}>
+                    <option key={d.id} value={d.id}>
                       {d.name} ({d.email})
                     </option>
                   ))}

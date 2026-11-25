@@ -151,9 +151,9 @@ const DispatchDashboard = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'Proposed', value: stats?.byStatus?.find(s => s._id === 'proposed')?.count || 0, icon: Clock, color: 'text-slate-600 bg-slate-100' },
-          { title: 'Assigned', value: stats?.byStatus?.find(s => s._id === 'assigned')?.count || 0, icon: User, color: 'text-primary-600 bg-primary-100' },
-          { title: 'In Transit', value: stats?.byStatus?.find(s => s._id === 'in_transit')?.count || 0, icon: Truck, color: 'text-warning-600 bg-warning-100' },
+          { title: 'Proposed', value: stats?.byStatus?.find(s => s.status === 'proposed')?.count || 0, icon: Clock, color: 'text-slate-600 bg-slate-100' },
+          { title: 'Assigned', value: stats?.byStatus?.find(s => s.status === 'assigned')?.count || 0, icon: User, color: 'text-primary-600 bg-primary-100' },
+          { title: 'In Transit', value: stats?.byStatus?.find(s => s.status === 'in_transit')?.count || 0, icon: Truck, color: 'text-warning-600 bg-warning-100' },
           { title: 'Delivered', value: stats?.totalDelivered || 0, icon: CheckCircle, color: 'text-green-600 bg-green-100' }
         ].map((stat, i) => (
           <div key={i} className="card">
@@ -236,7 +236,7 @@ const DispatchDashboard = () => {
             <div className="divide-y divide-slate-200">
               {filteredTransfers.map(transfer => (
                 <TransferCard
-                  key={transfer._id}
+                  key={transfer.id}
                   transfer={transfer}
                   onAssign={handleAssign}
                   onStatusUpdate={handleStatusUpdate}

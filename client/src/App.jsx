@@ -41,21 +41,25 @@ const App = () => {
             <Route path="/coordinator" element={<CoordinatorDashboard />} />
             <Route path="/coordinator/inventory" element={<InventoryPage />} />
             <Route path="/coordinator/requests" element={<RequestsPage />} />
+            <Route path="/coordinator/requests/:id" element={<RequestsPage />} />
             <Route path="/coordinator/transfers" element={<TransfersPage />} />
+            <Route path="/coordinator/transfers/new" element={<TransfersPage />} />
           </Route>
-          
+
           {/* Dispatcher routes */}
           <Route element={<DispatcherRoute />}>
             <Route path="/dispatcher" element={<DispatchDashboard />} />
             <Route path="/dispatcher/transfers" element={<TransfersPage />} />
+            <Route path="/dispatcher/transfers/new" element={<TransfersPage />} />
             <Route path="/dispatcher/requests" element={<RequestsPage />} />
             <Route path="/dispatcher/map" element={<div className="card"><div className="card-body text-center py-12">Map View - Coming Soon</div></div>} />
           </Route>
-          
+
           {/* Admin routes */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/camps" element={<div className="card"><div className="card-body text-center py-12">Camps Management - Coming Soon</div></div>} />
+            <Route path="/admin/camps" element={<InventoryPage />} />
+            <Route path="/admin/camps/new" element={<InventoryPage />} />
             <Route path="/admin/inventory" element={<InventoryPage />} />
             <Route path="/admin/requests" element={<RequestsPage />} />
             <Route path="/admin/transfers" element={<TransfersPage />} />

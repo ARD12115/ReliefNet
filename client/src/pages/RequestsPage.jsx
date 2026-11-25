@@ -138,7 +138,7 @@ const RequestsPage = () => {
                 </thead>
                 <tbody>
                   {filteredRequests.map(request => (
-                    <tr key={request._id}>
+                    <tr key={request.id}>
                       <td>
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{getCategoryIcon(request.category)}</span>
@@ -167,7 +167,7 @@ const RequestsPage = () => {
                       <td>
                         <div className="flex items-center gap-1">
                           <Link
-                            to={`/coordinator/requests/${request._id}`}
+                            to={`/coordinator/requests/${request.id}`}
                             className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                             title="View"
                           >
@@ -175,7 +175,7 @@ const RequestsPage = () => {
                           </Link>
                           {['open', 'partial', 'matched'].includes(request.status) && (
                             <button
-                              onClick={() => handleCancel(request._id)}
+                              onClick={() => handleCancel(request.id)}
                               className="p-2 rounded-lg text-slate-500 hover:bg-danger-50 hover:text-danger-600"
                               title="Cancel"
                             >

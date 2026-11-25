@@ -10,7 +10,7 @@ const InventoryForm = ({ initialData, onClose, onSuccess }) => {
   
   const isEditing = !!initialData;
   const [formData, setFormData] = useState({
-    campId: initialData?.campId?._id || initialData?.campId || '',
+    campId: initialData?.campId || '',
     category: initialData?.category || 'food',
     itemName: initialData?.itemName || '',
     quantity: initialData?.quantity || 0,
@@ -40,7 +40,7 @@ const InventoryForm = ({ initialData, onClose, onSuccess }) => {
     setIsSubmitting(true);
     try {
       if (isEditing) {
-        await updateItem(initialData._id, formData);
+        await updateItem(initialData.id, formData);
         toast.success('Inventory item updated');
       } else {
         await createItem(formData);
@@ -103,7 +103,7 @@ const InventoryForm = ({ initialData, onClose, onSuccess }) => {
                 >
                   <option value="">Select camp...</option>
                   {camps.map(camp => (
-                    <option key={camp._id} value={camp._id}>{camp.name}</option>
+                    <option key={camp.id} value={camp.id}>{camp.name}</option>
                   ))}
                 </select>
                 {errors.campId && <p className="mt-1 text-sm text-danger-600">{errors.campId}</p>}

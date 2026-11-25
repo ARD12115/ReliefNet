@@ -167,7 +167,7 @@ const TransfersPage = () => {
             <div className="divide-y divide-slate-200">
               {filteredTransfers.map(transfer => (
                 <TransferCard
-                  key={transfer._id}
+                  key={transfer.id}
                   transfer={transfer}
                   onAssign={handleAssign}
                   onStatusUpdate={handleStatusUpdate}

@@ -66,13 +66,13 @@ const AdminDashboard = () => {
         ],
         transfersByStatus: [
           { name: 'Delivered', value: stats.transfers.totalDelivered || 0 },
-          { name: 'In Transit', value: stats.transfers.byStatus?.find(s => s._id === 'in_transit')?.count || 0 },
-          { name: 'Assigned', value: stats.transfers.byStatus?.find(s => s._id === 'assigned')?.count || 0 },
-          { name: 'Proposed', value: stats.transfers.byStatus?.find(s => s._id === 'proposed')?.count || 0 },
-          { name: 'Cancelled', value: stats.transfers.byStatus?.find(s => s._id === 'cancelled')?.count || 0 }
+          { title: 'In Transit', value: stats.transfers.byStatus?.find(s => s.status === 'in_transit')?.count || 0 },
+          { title: 'Assigned', value: stats.transfers.byStatus?.find(s => s.status === 'assigned')?.count || 0 },
+          { title: 'Proposed', value: stats.transfers.byStatus?.find(s => s.status === 'proposed')?.count || 0 },
+          { name: 'Cancelled', value: stats.transfers.byStatus?.find(s => s.status === 'cancelled')?.count || 0 }
         ].filter(d => d.value > 0),
         inventoryByCategory: stats.inventory.byCategory?.map(c => ({
-          name: c._id,
+          name: c.id,
           items: c.totalItems,
           quantity: c.totalQuantity
         })) || []
@@ -134,15 +134,15 @@ const AdminDashboard = () => {
     {
       title: 'Open Requests',
       value: stats.requests?.totalOpen || 0,
-      subtitle: `${stats.requests?.byUrgency?.find(u => u._id === 'critical')?.count || 0} critical`,
+      subtitle: `${stats.requests?.byUrgency?.find(u => u.urgency === 'critical')?.count || 0} critical`,
       icon: FileText,
       color: 'text-danger-600 bg-danger-100',
       href: '/admin/requests'
-    },
-    {
+      },
+      {
       title: 'Active Transfers',
-      value: (stats.transfers?.byStatus?.find(s => s._id === 'in_transit')?.count || 0) + 
-             (stats.transfers?.byStatus?.find(s => s._id === 'assigned')?.count || 0),
+      value: (stats.transfers?.byStatus?.find(s => s.status === 'in_transit')?.count || 0) +
+         (stats.transfers?.byStatus?.find(s => s.status === 'assigned')?.count || 0),
       subtitle: `${stats.transfers?.totalDelivered || 0} delivered total`,
       icon: Truck,
       color: 'text-warning-600 bg-warning-100',

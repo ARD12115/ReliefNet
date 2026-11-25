@@ -73,7 +73,7 @@ const CampCard = ({ camp, onClick, showActions = false, onEdit, onDelete }) => {
             )}
             {onDelete && (
               <button
-                onClick={(e) => { e.stopPropagation(); onDelete(camp._id); }}
+                onClick={(e) => { e.stopPropagation(); onDelete(camp.id); }}
                 className="btn-danger text-sm flex-1"
               >
                 <Trash2 className="w-4 h-4 mr-1" /> Delete

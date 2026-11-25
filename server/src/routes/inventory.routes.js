@@ -17,7 +17,7 @@ router.use(authenticate);
 
 // All roles can view
 router.get('/', [
-  query('campId').optional().isMongoId(),
+  query('campId').optional().isUUID(),
   query('category').optional().isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']),
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
@@ -31,7 +31,7 @@ router.get('/camp/:campId', validateObjectId('campId'), getCampInventory);
 
 // Coordinator/Admin for their camp, Admin for all
 router.post('/', authorize('admin', 'coordinator'), [
-  body('campId').isMongoId().withMessage('Valid camp ID required'),
+  body('campId').isUUID().withMessage('Valid camp ID required'),
   body('category').isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']).withMessage('Invalid category'),
   body('itemName').trim().notEmpty().withMessage('Item name required').isLength({ max: 100 }).withMessage('Item name too long'),
   body('quantity').optional().isInt({ min: 0 }).withMessage('Quantity must be non-negative'),

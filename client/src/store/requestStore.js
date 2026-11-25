@@ -49,8 +49,8 @@ export const useRequestStore = create((set, get) => ({
     try {
       const response = await api.patch(`/requests/${id}`, data);
       set((state) => ({
-        requests: state.requests.map(r => r._id === id ? response.data.data.request : r),
-        selectedRequest: state.selectedRequest?._id === id ? response.data.data.request : state.selectedRequest,
+        requests: state.requests.map(r => r.id === id ? response.data.data.request : r),
+        selectedRequest: state.selectedRequest?.id === id ? response.data.data.request : state.selectedRequest,
         isLoading: false
       }));
       return response.data.data.request;
@@ -65,8 +65,8 @@ export const useRequestStore = create((set, get) => ({
     try {
       const response = await api.post(`/requests/${id}/cancel`, { reason });
       set((state) => ({
-        requests: state.requests.map(r => r._id === id ? response.data.data.request : r),
-        selectedRequest: state.selectedRequest?._id === id ? response.data.data.request : state.selectedRequest,
+        requests: state.requests.map(r => r.id === id ? response.data.data.request : r),
+        selectedRequest: state.selectedRequest?.id === id ? response.data.data.request : state.selectedRequest,
         isLoading: false
       }));
       return response.data.data.request;

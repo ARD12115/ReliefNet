@@ -50,7 +50,7 @@ export const useInventoryStore = create((set, get) => ({
     try {
       const response = await api.patch(`/inventory/${id}`, data);
       set((state) => ({
-        items: state.items.map(item => item._id === id ? response.data.data.item : item),
+        items: state.items.map(item => item.id === id ? response.data.data.item : item),
         isLoading: false
       }));
       return response.data.data.item;
@@ -78,13 +78,13 @@ export const useInventoryStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await api.delete(`/inventory/${id}`);
-      set((state) => ({ items: state.items.filter(item => item._id !== id), isLoading: false }));
+      set((state) => ({ items: state.items.filter(item => item.id !== id), isLoading: false }));
     } catch (error) {
       set({ error: error.response?.data?.message || 'Failed to delete inventory item', isLoading: false });
       throw error;
     }
   },
-  
+
   fetchSummary: async (campId) => {
     try {
       const response = await api.get('/inventory/summary', { params: { campId } });
@@ -94,18 +94,6 @@ export const useInventoryStore = create((set, get) => ({
       throw error;
     }
   },
-  
-  fetchHistory: async (params = {}) => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await api.get('/inventory/history', { params });
-      set({ history: response.data.data.history, isLoading: false });
-      return response.data.data;
-    } catch (error) {
-      set({ error: error.response?.data?.message || 'Failed to fetch history', isLoading: false });
-      throw error;
-    }
-  },
-  
+
   clearError: () => set({ error: null })
 }));

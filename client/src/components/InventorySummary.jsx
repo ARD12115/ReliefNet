@@ -33,7 +33,7 @@ const InventorySummary = ({ campId }) => {
   ];
 
   const categoryData = categories.map(cat => {
-    const data = summary.byCategory?.find(c => c._id === cat.key);
+    const data = summary.byCategory?.find(c => c.category === cat.key);
     const items = groupedItems[cat.key] || [];
     return {
       ...cat,

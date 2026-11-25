@@ -16,7 +16,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', [
-  query('campId').optional().isMongoId(),
+  query('campId').optional().isUUID(),
   query('category').optional().isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']),
   query('status').optional().isIn(['open', 'partial', 'matched', 'fulfilled', 'cancelled']),
   query('urgency').optional().isIn(['low', 'medium', 'high', 'critical']),
@@ -30,7 +30,7 @@ router.get('/stats', getRequestStats);
 router.get('/:id', validateObjectId(), getRequest);
 
 router.post('/', authorize('admin', 'coordinator'), [
-  body('campId').isMongoId().withMessage('Valid camp ID required'),
+  body('campId').isUUID().withMessage('Valid camp ID required'),
   body('category').isIn(['food', 'water', 'medicine', 'shelter', 'other', 'clothing', 'sanitation']).withMessage('Invalid category'),
   body('itemName').trim().notEmpty().withMessage('Item name required').isLength({ max: 100 }).withMessage('Item name too long'),
   body('quantityNeeded').isInt({ min: 1 }).withMessage('Quantity needed must be at least 1'),
