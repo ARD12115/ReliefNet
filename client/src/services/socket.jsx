@@ -11,7 +11,7 @@ class SocketService {
     const { accessToken } = useAuthStore.getState();
     if (!accessToken) return;
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+    const socketUrl = process.env.SERVER_URL || import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
     
     this.socket = io(socketUrl, {
       auth: { token: accessToken },
