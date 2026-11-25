@@ -1,11 +1,17 @@
 import { jest } from '@jest/globals';
+import dotenv from 'dotenv';
 
-// Mock environment variables
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-secret-key-for-testing-only';
-process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-for-testing-only';
-process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/reliefnet_test';
-process.env.OSRM_URL = 'http://localhost:5000';
+// Load .env file so Aiven DATABASE_URL is available in tests
+dotenv.config();
+
+// Mock environment variables (only set if not already defined by .env)
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key-for-testing-only';
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-refresh-secret-key-for-testing-only';
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://postgres:***@localhost:5432/reliefnet_test';
+}
+process.env.OSRM_URL = process.env.OSRM_URL || 'http://localhost:5000';
 
 // Increase timeout for async tests
 jest.setTimeout(10000);
