@@ -51,7 +51,7 @@ const createApp = async () => {
   }));
 
   // Strict CORS with origin whitelist
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000').split(',').map(o => o.trim());
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://reliefnet-lake.vercel.app').split(',').map(o => o.trim());
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, curl, etc.)
@@ -63,10 +63,10 @@ const createApp = async () => {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Length', 'X-Request-Id'],
     maxAge: 86400 // 24 hours
-  }));
+  }))
 
   // Apply rate limiting to all API routes
   app.use('/api/', apiRateLimiter);

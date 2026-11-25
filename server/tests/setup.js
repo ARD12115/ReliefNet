@@ -13,7 +13,7 @@ jest.setTimeout(10000);
 // Global test utilities
 global.testUtils = {
   createMockUser: (overrides = {}) => ({
-    _id: '507f1f77bcf86cd799439011',
+    id: '507f1f77bcf86cd799439011',
     name: 'Test User',
     email: 'test@reliefnet.org',
     role: 'coordinator',
@@ -21,22 +21,20 @@ global.testUtils = {
     isActive: true,
     ...overrides
   }),
-  
+
   createMockCamp: (overrides = {}) => ({
-    _id: '507f1f77bcf86cd799439012',
+    id: '507f1f77bcf86cd799439012',
     name: 'Test Camp',
-    location: {
-      type: 'Point',
-      coordinates: [77.5946, 12.9716] // Bangalore
-    },
+    latitude: 12.9716,
+    longitude: 77.5946,
     capacity: 500,
     currentPopulation: 300,
     status: 'active',
     ...overrides
   }),
-  
+
   createMockInventoryItem: (overrides = {}) => ({
-    _id: '507f1f77bcf86cd799439013',
+    id: '507f1f77bcf86cd799439013',
     campId: '507f1f77bcf86cd799439012',
     category: 'food',
     itemName: 'Rice bags',
@@ -45,9 +43,9 @@ global.testUtils = {
     minimumThreshold: 20,
     ...overrides
   }),
-  
+
   createMockRequest: (overrides = {}) => ({
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     campId: '507f1f77bcf86cd799439012',
     category: 'food',
     itemName: 'Rice bags',
@@ -58,9 +56,9 @@ global.testUtils = {
     requestedBy: '507f1f77bcf86cd799439011',
     ...overrides
   }),
-  
+
   createMockTransfer: (overrides = {}) => ({
-    _id: '507f1f77bcf86cd799439015',
+    id: '507f1f77bcf86cd799439015',
     fromCampId: '507f1f77bcf86cd799439012',
     toCampId: '507f1f77bcf86cd799439016',
     requestId: '507f1f77bcf86cd799439014',
