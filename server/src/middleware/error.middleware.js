@@ -1,33 +1,34 @@
 export const errorHandler = (err, req, res, _next) => {
   console.error('Error:', err);
-  
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const errors = Object.values(err.errors).map(e => e.message);
+
+  // Sequelize validation error
+  if (err.name === 'SequelizeValidationError') {
+    const errors = err.errors.map(e => e.message);
     return res.status(400).json({
       success: false,
       message: 'Validation failed',
       errors
     });
   }
-  
-  // Mongoose duplicate key error
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+
+  // Sequelize unique constraint error
+  if (err.name === 'SequelizeUniqueConstraintError') {
+    const errors = err.errors.map(e => e.message);
     return res.status(400).json({
       success: false,
-      message: `${field} already exists`
+      message: 'Validation failed',
+      errors
     });
   }
-  
-  // Mongoose cast error (invalid ObjectId)
-  if (err.name === 'CastError') {
+
+  // Sequelize foreign key constraint error
+  if (err.name === 'SequelizeForeignKeyConstraintError') {
     return res.status(400).json({
       success: false,
-      message: `Invalid ${err.path}: ${err.value}`
+      message: 'Referenced record does not exist'
     });
   }
-  
+
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
@@ -35,14 +36,14 @@ export const errorHandler = (err, req, res, _next) => {
       message: 'Invalid token'
     });
   }
-  
+
   if (err.name === 'TokenExpiredError') {
     return res.status(401).json({
       success: false,
       message: 'Token expired'
     });
   }
-  
+
   // Zod validation error
   if (err.name === 'ZodError') {
     return res.status(400).json({
@@ -51,11 +52,11 @@ export const errorHandler = (err, req, res, _next) => {
       errors: err.errors.map(e => `${e.path.join('.')}: ${e.message}`)
     });
   }
-  
+
   // Default error
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';
-  
+
   res.status(statusCode).json({
     success: false,
     message,

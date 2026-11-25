@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 4000;
 
 const startServer = async () => {
   try {
-    // Connect to MongoDB
+    // Connect to PostgreSQL
     await connectDB();
     
     // Create Express app (initializes rate limiters with Redis)

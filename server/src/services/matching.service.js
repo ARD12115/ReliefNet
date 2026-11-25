@@ -3,6 +3,7 @@ import Request from '../models/Request.js';
 import Transfer from '../models/Transfer.js';
 import { getRoutingService } from './routing.service.js';
 import { getSocketService } from './socket.service.js';
+import { Op } from 'sequelize';
 
 class MatchingService {
   constructor() {
@@ -28,9 +29,12 @@ class MatchingService {
 
     try {
       // Find all open/partial requests
-      const openRequests = await Request.find({
-        status: { $in: ['open', 'partial', 'matched'] }
-      }).populate('campId', 'name location status');
+      const openRequests = await Request.findAll({
+        where: {
+          status: { [Op.in]: ['open', 'partial', 'matched'] }
+        },
+        include: [{ model: require('../models/Camp.js').default, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
+      });
 
       console.log(`Found ${openRequests.length} open requests to match`);
 
@@ -49,11 +53,11 @@ class MatchingService {
   async matchRequest(request) {
     try {
       // Skip if camp is evacuating
-      if (request.campId.status === 'evacuating' || request.campId.status === 'evacuated') {
+      if (request.camp && (request.camp.status === 'evacuating' || request.camp.status === 'evacuated')) {
         return;
       }
 
-      const quantityRemaining = request.quantityRemaining;
+      const quantityRemaining = request.getQuantityRemaining();
       if (quantityRemaining <= 0) return;
 
       // Find camps with surplus of the same item
@@ -61,7 +65,7 @@ class MatchingService {
         request.category,
         request.itemName,
         quantityRemaining,
-        request.campId._id
+        request.campId
       );
 
       if (surplusCamps.length === 0) {
@@ -71,32 +75,37 @@ class MatchingService {
 
       // Score and sort matches
       const scoredMatches = await this.scoreMatches(request, surplusCamps);
-      
+
       // Try to fulfill the request (potentially split across multiple camps)
       await this.createTransfersForRequest(request, scoredMatches);
 
     } catch (error) {
-      console.error(`Error matching request ${request._id}:`, error);
+      console.error(`Error matching request ${request.id}:`, error);
     }
   }
 
   async findSurplusCamps(category, itemName, quantityNeeded, excludeCampId) {
     // Find inventory items with surplus
-    const inventoryItems = await InventoryItem.find({
-      category,
-      itemName,
-      campId: { $ne: excludeCampId }
-    }).populate('campId', 'name location status');
+    const where = { category, itemName };
+    if (excludeCampId) {
+      where.campId = { [Op.ne]: excludeCampId };
+    }
+
+    const inventoryItems = await InventoryItem.findAll({
+      where,
+      include: [{ model: require('../models/Camp.js').default, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
+    });
 
     // Filter for camps with actual surplus and active status
     const surplusCamps = [];
     for (const item of inventoryItems) {
-      if (item.campId.status !== 'active') continue;
-      if (item.surplusQuantity >= this.MIN_SURPLUS_THRESHOLD) {
+      if (item.camp && item.camp.status !== 'active') continue;
+      const surplus = item.getSurplusQuantity();
+      if (surplus >= this.MIN_SURPLUS_THRESHOLD) {
         surplusCamps.push({
           inventoryItem: item,
-          camp: item.campId,
-          availableQuantity: item.surplusQuantity
+          camp: item.camp,
+          availableQuantity: surplus
         });
       }
     }
@@ -106,19 +115,19 @@ class MatchingService {
 
   async scoreMatches(request, surplusCamps) {
     const routingService = getRoutingService();
-    const requestCamp = request.campId;
+    const requestCamp = request.camp;
     const scored = [];
 
     for (const surplus of surplusCamps) {
       try {
         // Calculate distance using routing service
         const route = await routingService.getRoute(
-          requestCamp.location.coordinates[1], requestCamp.location.coordinates[0],
-          surplus.camp.location.coordinates[1], surplus.camp.location.coordinates[0]
+          requestCamp.latitude, requestCamp.longitude,
+          surplus.camp.latitude, surplus.camp.longitude
         );
 
         const distanceKm = route.distanceKm;
-        
+
         // Skip if too far
         if (distanceKm > this.MAX_MATCH_DISTANCE_KM) continue;
 
@@ -126,7 +135,7 @@ class MatchingService {
         const urgencyWeight = this.URGENCY_WEIGHTS[request.urgency] || 1;
         const quantityFactor = Math.min(surplus.availableQuantity, request.quantityRemaining) / request.quantityRemaining;
         const distanceFactor = Math.max(1, distanceKm / 10); // Normalize distance
-        
+
         const score = (urgencyWeight * quantityFactor) / distanceFactor;
 
         scored.push({
@@ -141,16 +150,16 @@ class MatchingService {
         console.error(`Routing error for match:`, error);
         // Fallback to Haversine distance
         const distanceKm = this.haversineDistance(
-          requestCamp.location.coordinates[1], requestCamp.location.coordinates[0],
-          surplus.camp.location.coordinates[1], surplus.camp.location.coordinates[0]
+          requestCamp.latitude, requestCamp.longitude,
+          surplus.camp.latitude, surplus.camp.longitude
         );
-        
+
         if (distanceKm > this.MAX_MATCH_DISTANCE_KM) continue;
 
         const urgencyWeight = this.URGENCY_WEIGHTS[request.urgency] || 1;
         const quantityFactor = Math.min(surplus.availableQuantity, request.quantityRemaining) / request.quantityRemaining;
         const distanceFactor = Math.max(1, distanceKm / 10);
-        
+
         const score = (urgencyWeight * quantityFactor) / distanceFactor;
 
         scored.push({
@@ -169,38 +178,53 @@ class MatchingService {
   }
 
   async createTransfersForRequest(request, scoredMatches) {
-    let remainingQuantity = request.quantityRemaining;
+    let remainingQuantity = request.getQuantityRemaining();
     const createdTransfers = [];
 
     for (const match of scoredMatches) {
       if (remainingQuantity <= 0) break;
 
       const quantityToTransfer = Math.min(match.quantityToTransfer, remainingQuantity);
-      
+
       // Check if transfer already exists for this request from this camp
       const existingTransfer = await Transfer.findOne({
-        requestId: request._id,
-        fromCampId: match.camp._id,
-        status: { $in: ['proposed', 'assigned', 'in_transit'] }
+        where: {
+          requestId: request.id,
+          fromCampId: match.camp.id,
+          status: { [Op.in]: ['proposed', 'assigned', 'in_transit'] }
+        }
       });
 
       if (existingTransfer) {
-        console.log(`Transfer already exists for request ${request._id} from camp ${match.camp._id}`);
+        console.log(`Transfer already exists for request ${request.id} from camp ${match.camp.id}`);
         continue;
       }
 
       // Double-check inventory availability (race condition protection)
-      const currentInventory = await InventoryItem.findById(match.inventoryItem._id);
-      if (!currentInventory || currentInventory.surplusQuantity < quantityToTransfer) {
-        console.log(`Insufficient surplus now for camp ${match.camp._id}`);
+      const currentInventory = await InventoryItem.findByPk(match.inventoryItem.id);
+      if (!currentInventory || currentInventory.getSurplusQuantity() < quantityToTransfer) {
+        console.log(`Insufficient surplus now for camp ${match.camp.id}`);
+        continue;
+      }
+
+      // Reserve the quantity so concurrent matching runs cannot overallocate
+      await InventoryItem.increment({ reservedQuantity: quantityToTransfer }, {
+        where: { id: currentInventory.id }
+      });
+
+      // Re-check after reservation
+      const refreshedInv = await InventoryItem.findByPk(currentInventory.id);
+      if (refreshedInv.getSurplusQuantity() < quantityToTransfer) {
+        await InventoryItem.decrement({ reservedQuantity: quantityToTransfer }, { where: { id: currentInventory.id } });
+        console.log(`Insufficient surplus now for camp ${match.camp.id}`);
         continue;
       }
 
       // Create transfer
       const transfer = await Transfer.create({
-        fromCampId: match.camp._id,
-        toCampId: request.campId._id,
-        requestId: request._id,
+        fromCampId: match.camp.id,
+        toCampId: request.campId,
+        requestId: request.id,
         itemName: request.itemName,
         category: request.category,
         quantity: quantityToTransfer,
@@ -223,17 +247,20 @@ class MatchingService {
 
       // Emit real-time event
       const socketService = getSocketService();
-      const populatedTransfer = await Transfer.findById(transfer._id)
-        .populate('fromCampId', 'name location')
-        .populate('toCampId', 'name location')
-        .populate('requestId', 'itemName category urgency');
+      const populatedTransfer = await Transfer.findByPk(transfer.id, {
+        include: [
+          { model: require('../models/Camp.js').default, as: 'fromCamp', attributes: ['id', 'name', 'latitude', 'longitude'] },
+          { model: require('../models/Camp.js').default, as: 'toCamp', attributes: ['id', 'name', 'latitude', 'longitude'] },
+          { model: Request, as: 'request', attributes: ['id', 'itemName', 'category', 'urgency'] }
+        ]
+      });
 
-      socketService.emitToCamp(request.campId._id, 'transfer:created', populatedTransfer);
-      socketService.emitToCamp(match.camp._id, 'transfer:created', populatedTransfer);
+      socketService.emitToCamp(request.campId, 'transfer:created', populatedTransfer);
+      socketService.emitToCamp(match.camp.id, 'transfer:created', populatedTransfer);
       socketService.emitToAdmins('transfer:created', populatedTransfer);
       socketService.emitToDispatchers('transfer:created', populatedTransfer);
-      socketService.emitToCamp(request.campId._id, 'match:found', {
-        requestId: request._id,
+      socketService.emitToCamp(request.campId, 'match:found', {
+        requestId: request.id,
         fromCamp: match.camp,
         quantity: quantityToTransfer,
         distanceKm: match.distanceKm,
@@ -242,7 +269,7 @@ class MatchingService {
     }
 
     if (createdTransfers.length > 0) {
-      console.log(`Created ${createdTransfers.length} transfers for request ${request._id}`);
+      console.log(`Created ${createdTransfers.length} transfers for request ${request.id}`);
     }
   }
 
@@ -259,12 +286,15 @@ class MatchingService {
 
   // Trigger matching for specific camp/category/item
   async triggerMatching(campId, category, itemName) {
-    const requests = await Request.find({
-      campId,
-      category,
-      itemName,
-      status: { $in: ['open', 'partial', 'matched'] }
-    }).populate('campId', 'name location status');
+    const requests = await Request.findAll({
+      where: {
+        campId,
+        category,
+        itemName,
+        status: { [Op.in]: ['open', 'partial', 'matched'] }
+      },
+      include: [{ model: require('../models/Camp.js').default, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
+    });
 
     for (const request of requests) {
       await this.matchRequest(request);
@@ -283,16 +313,16 @@ export const getMatchingService = () => {
 
 export const startMatchingCron = () => {
   const service = getMatchingService();
-  
+
   // Run every 5 minutes
   setInterval(() => {
     service.runMatching();
   }, 5 * 60 * 1000);
-  
+
   // Initial run after 10 seconds
   setTimeout(() => {
     service.runMatching();
   }, 10000);
-  
+
   console.log('Matching cron started (every 5 minutes)');
 };

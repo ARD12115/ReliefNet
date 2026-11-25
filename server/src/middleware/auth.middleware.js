@@ -25,11 +25,11 @@ export const authenticate = async (req, res, next) => {
       });
     }
     
-    // Check token version for invalidation
-    if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Token invalidated. Please login again.' 
+    // Check token version for invalidation (reject tokens without a version)
+    if (decoded.tokenVersion === undefined || decoded.tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token invalidated. Please login again.'
       });
     }
     

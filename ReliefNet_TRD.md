@@ -17,8 +17,8 @@
 - **bcrypt** — password hashing
 
 ### Database
-- **MongoDB** (with Mongoose ODM) — flexible schema for camps, inventory, requests
-  - *Alternative:* PostgreSQL + PostGIS if you want strong geospatial querying (recommended if routing logic gets complex)
+- **PostgreSQL** (with Sequelize ORM) — relational schema for camps, inventory, requests
+  - *Alternative:* PostgreSQL + PostGIS for strong geospatial querying
 - **Redis** (optional) — caching active matches, pub/sub for real-time scaling
 
 ### Routing / Geospatial
@@ -34,7 +34,7 @@
 - **Docker** + docker-compose for local dev (API, DB, OSRM)
 - **GitHub Actions** — CI (lint, test)
 - **Render / Railway / AWS EC2** — deployment (demo-scale)
-- **MongoDB Atlas** — hosted DB (if not self-hosting)
+- **PostgreSQL (managed)** — hosted DB (if not self-hosting)
 
 ### Testing
 - **Jest** + **Supertest** (backend API tests)
@@ -45,7 +45,7 @@
 ## 2. High-Level Architecture
 
 ```
-[React Dashboard] <--HTTP/WS--> [Express API + Socket.IO] <---> [MongoDB]
+[React Dashboard] <--HTTP/WS--> [Express API + Socket.IO] <---> [PostgreSQL]
                                         |
                                         |--> [Matching Engine Service]
                                         |--> [Routing Service (OSRM/Google Directions)]
@@ -173,7 +173,8 @@ reliefnet/
 ### Backend (`server/package.json`)
 ```
 express
-mongoose
+pg
+sequelize
 socket.io
 jsonwebtoken
 bcryptjs

@@ -19,13 +19,13 @@ export const validate = (req, res, next) => {
 
 export const validateObjectId = (paramName = 'id') => (req, res, next) => {
   const value = req.params[paramName];
-  
-  if (!value || !value.match(/^[0-9a-fA-F]{24}$/)) {
+
+  if (!value || !value.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
     return res.status(400).json({
       success: false,
       message: `Invalid ${paramName} format`
     });
   }
-  
+
   next();
 };

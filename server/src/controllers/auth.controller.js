@@ -52,7 +52,7 @@ export const register = catchAsync(async (req, res) => {
     throw new AppError('Email already registered', 400);
   }
 
-  const allowedRoles = ['coordinator', 'dispatcher', 'admin'];
+  const allowedRoles = ['coordinator'];
   const userRole = allowedRoles.includes(role) ? role : 'coordinator';
 
   const user = await User.create({

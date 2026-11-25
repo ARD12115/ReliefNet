@@ -1,9 +1,12 @@
-import { sequelize } from './config/db.js';
+import { sequelize } from '../config/db.js';
 import User from './User.js';
 import Camp from './Camp.js';
 import InventoryItem from './InventoryItem.js';
 import Request from './Request.js';
 import Transfer from './Transfer.js';
+import InventoryHistory from './InventoryHistory.js';
+import UserSession from './UserSession.js';
+import CampMembership from './CampMembership.js';
 
 // Associations (replace Mongoose populate)
 Camp.belongsTo(User, { foreignKey: 'managedBy', as: 'managedBy' });
@@ -31,4 +34,32 @@ User.hasMany(Request, { foreignKey: 'requestedBy', as: 'requests' });
 User.hasMany(Transfer, { foreignKey: 'assignedTo', as: 'assignedTransfers' });
 User.hasMany(Transfer, { foreignKey: 'createdBy', as: 'createdTransfers' });
 
-export { sequelize, User, Camp, InventoryItem, Request, Transfer };
+// UserSession associations
+User.hasMany(UserSession, { foreignKey: 'userId', as: 'sessions' });
+UserSession.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// CampMembership associations
+User.hasMany(CampMembership, { foreignKey: 'userId', as: 'campMemberships' });
+CampMembership.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Camp.hasMany(CampMembership, { foreignKey: 'campId', as: 'members' });
+CampMembership.belongsTo(Camp, { foreignKey: 'campId', as: 'camp' });
+
+// InventoryHistory associations
+InventoryItem.hasMany(InventoryHistory, { foreignKey: 'inventoryItemId', as: 'history' });
+InventoryHistory.belongsTo(InventoryItem, { foreignKey: 'inventoryItemId', as: 'inventoryItem' });
+InventoryHistory.belongsTo(Camp, { foreignKey: 'campId', as: 'camp' });
+InventoryHistory.belongsTo(User, { foreignKey: 'performedBy', as: 'performedBy' });
+User.hasMany(InventoryHistory, { foreignKey: 'performedBy', as: 'performedInventoryActions' });
+Camp.hasMany(InventoryHistory, { foreignKey: 'campId', as: 'inventoryHistory' });
+
+export {
+  sequelize,
+  User,
+  Camp,
+  InventoryItem,
+  InventoryHistory,
+  Request,
+  Transfer,
+  UserSession,
+  CampMembership,
+};

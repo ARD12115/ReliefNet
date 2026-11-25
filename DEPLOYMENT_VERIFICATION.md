@@ -264,7 +264,7 @@ socket.on('reconnect', (attemptNumber) => {
 | Health checks configured in orchestrator | ☐ | Kubernetes/Docker Swarm |
 | Log aggregation configured | ☐ | ELK/Datadog/CloudWatch |
 | Monitoring alerts for rate limiter | ☐ | Redis down, rate limit exceeded |
-| Backup strategy for MongoDB/Redis | ☐ | |
+| Backup strategy for PostgreSQL/Redis | ☐ | |
 
 ---
 

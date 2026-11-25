@@ -13,14 +13,14 @@ A real-time relief coordination platform that matches supply surplus at one reli
 
 ### Backend
 - Node.js + Express.js
-- MongoDB + Mongoose
+- PostgreSQL + Sequelize
 - Socket.IO for WebSocket
 - JWT authentication
 - OSRM (Open Source Routing Machine) for routing
 
 ### DevOps
 - Docker + docker-compose
-- MongoDB Atlas / Local MongoDB
+- PostgreSQL / Local PostgreSQL
 - GitHub Actions CI
 
 ## Quick Start
@@ -59,9 +59,9 @@ cd server && npm install
 cd ../client && npm install
 ```
 
-2. Start MongoDB and Redis (using Docker):
+2. Start PostgreSQL and Redis (using Docker):
 ```bash
-docker-compose up -d mongodb redis osrm
+docker-compose up -d postgres redis osrm
 ```
 
 3. Configure environment:
@@ -195,7 +195,7 @@ See `server/.env.example` for all options:
 NODE_ENV=development
 PORT=4000
 CLIENT_URL=http://localhost:5173
-MONGODB_URI=mongodb://localhost:27017/reliefnet
+DATABASE_URL=postgresql://postgres:***@localhost:5432/reliefnet
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=your-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret
