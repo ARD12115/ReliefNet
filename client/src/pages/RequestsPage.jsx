@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
+import {
+  Plus,
+  Search,
+  Filter,
   AlertTriangle,
   XCircle,
-  TrendingDown
+  TrendingDown,
+  Eye
 } from 'lucide-react';
 import { useRequestStore } from '../store/requestStore';
 import { useCampStore } from '../store/campStore';
@@ -205,8 +206,5 @@ const RequestsPage = () => {
     </div>
   );
 };
-
-// Need to import Eye
-import { Eye } from 'lucide-react';
 
 export default RequestsPage;

@@ -158,15 +158,15 @@ const CoordinatorDashboard = () => {
         <StatCard
           title="Active Requests"
           value={stats.requests?.totalOpen || 0}
-          subtitle={`${stats.requests?.byUrgency?.find(u => u._id === 'critical')?.count || 0} critical`}
+          subtitle={`${stats.requests?.byUrgency?.find(u => u.id === 'critical')?.count || 0} critical`}
           Icon={FileText}
           color="text-danger-600 bg-danger-100"
-          trend={stats.requests?.byUrgency?.find(u => u._id === 'critical')?.count > 0 ? 'danger' : 'neutral'}
+          trend={stats.requests?.byUrgency?.find(u => u.id === 'critical')?.count > 0 ? 'danger' : 'neutral'}
         />
         <StatCard
           title="Pending Transfers"
-          value={stats.transfers?.byStatus?.find(s => s._id === 'proposed')?.count || 0}
-          subtitle={`${stats.transfers?.byStatus?.find(s => s._id === 'in_transit')?.count || 0} in transit`}
+          value={stats.transfers?.byStatus?.find(s => s.id === 'proposed')?.count || 0}
+          subtitle={`${stats.transfers?.byStatus?.find(s => s.id === 'in_transit')?.count || 0} in transit`}
           Icon={Truck}
           color="text-warning-600 bg-warning-100"
           trend="neutral"

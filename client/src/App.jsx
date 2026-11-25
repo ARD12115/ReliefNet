@@ -11,6 +11,9 @@ const RequestsPage = lazy(() => import('./pages/RequestsPage'));
 const TransfersPage = lazy(() => import('./pages/TransfersPage'));
 const DispatchDashboard = lazy(() => import('./pages/DispatchDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const CreateCamp = lazy(() => import('./pages/CreateCamp'));
+const CreateTransfer = lazy(() => import('./pages/CreateTransfer'));
+const RequestDetail = lazy(() => import('./pages/RequestDetail'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -41,16 +44,16 @@ const App = () => {
             <Route path="/coordinator" element={<CoordinatorDashboard />} />
             <Route path="/coordinator/inventory" element={<InventoryPage />} />
             <Route path="/coordinator/requests" element={<RequestsPage />} />
-            <Route path="/coordinator/requests/:id" element={<RequestsPage />} />
-            <Route path="/coordinator/transfers" element={<TransfersPage />} />
-            <Route path="/coordinator/transfers/new" element={<TransfersPage />} />
+            <Route path="/coordinator/requests/:id" element={<RequestDetail />} />
+                        <Route path="/coordinator/transfers" element={<TransfersPage />} />
+                        <Route path="/coordinator/transfers/new" element={<CreateTransfer />} />
           </Route>
 
           {/* Dispatcher routes */}
           <Route element={<DispatcherRoute />}>
             <Route path="/dispatcher" element={<DispatchDashboard />} />
             <Route path="/dispatcher/transfers" element={<TransfersPage />} />
-            <Route path="/dispatcher/transfers/new" element={<TransfersPage />} />
+            <Route path="/dispatcher/transfers/new" element={<CreateTransfer />} />
             <Route path="/dispatcher/requests" element={<RequestsPage />} />
             <Route path="/dispatcher/map" element={<div className="card"><div className="card-body text-center py-12">Map View - Coming Soon</div></div>} />
           </Route>
@@ -58,8 +61,8 @@ const App = () => {
           {/* Admin routes */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/camps" element={<InventoryPage />} />
-            <Route path="/admin/camps/new" element={<InventoryPage />} />
+            <Route path="/admin/camps" element={<div className="card"><div className="card-body text-center py-12">Camps Management - Coming Soon</div></div>} />
+                        <Route path="/admin/camps/new" element={<CreateCamp />} />
             <Route path="/admin/inventory" element={<InventoryPage />} />
             <Route path="/admin/requests" element={<RequestsPage />} />
             <Route path="/admin/transfers" element={<TransfersPage />} />

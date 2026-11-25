@@ -5,7 +5,6 @@ export const useInventoryStore = create((set, get) => ({
   items: [],
   groupedItems: {},
   summary: null,
-  history: [],
   isLoading: false,
   error: null,
   
@@ -56,20 +55,6 @@ export const useInventoryStore = create((set, get) => ({
       return response.data.data.item;
     } catch (error) {
       set({ error: error.response?.data?.message || 'Failed to update inventory item', isLoading: false });
-      throw error;
-    }
-  },
-  
-  bulkUpdate: async (campId, items) => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await api.post(`/inventory/camp/${campId}/bulk`, { items });
-      set({ isLoading: false });
-      // Refetch camp inventory to get updated state
-      await get().fetchCampInventory(campId);
-      return response.data.data.items;
-    } catch (error) {
-      set({ error: error.response?.data?.message || 'Failed to bulk update inventory', isLoading: false });
       throw error;
     }
   },
