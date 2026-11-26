@@ -66,13 +66,13 @@ services:
       - "4000:4000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:***@postgres:5432/reliefnet
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/reliefnet
       - OSRM_URL=http://osrm:5000
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - JWT_REFRESH_SECRET=your-refresh-secret-change-in-production
       - PORT=4000
       - CLIENT_URL=http://localhost:5173
+      - SEED_ADMIN=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,7 +86,7 @@ services:
       dockerfile: Dockerfile
     container_name: reliefnet-frontend
     ports:
-      - "5173:80"
+      - "5173:8080"
     environment:
       - VITE_API_URL=http://localhost:4000
       - VITE_SOCKET_URL=http://localhost:4000

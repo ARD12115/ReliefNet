@@ -21,13 +21,18 @@ const getRedisClient = async () => {
   });
   
   try {
-    await redisClient.connect();
+    await Promise.race([
+      redisClient.connect(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connection timeout')), 5000)),
+    ]);
   } catch (err) {
     if (REDIS_REQUIRED) {
       console.error('Rate limiter: Redis connection required but unavailable');
       throw err;
     }
     console.warn('Rate limiter: Redis unavailable, falling back to memory store');
+    try { await redisClient.quit(); } catch {}
+    redisClient = null;
     return null;
   }
   

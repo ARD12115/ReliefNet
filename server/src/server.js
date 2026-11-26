@@ -1,12 +1,13 @@
-import http from 'http';
 import dotenv from 'dotenv';
+dotenv.config();
+
+import http from 'http';
 import createApp from './app.js';
 import connectDB from './config/db.js';
 import { initializeSocketService } from './services/socket.service.js';
 import { startMatchingCron } from './services/matching.service.js';
 import { shutdownRateLimiters } from './middleware/rateLimiter.js';
-
-dotenv.config();
+import User from './models/User.js';
 
 const PORT = process.env.PORT || 4000;
 
@@ -14,6 +15,23 @@ const startServer = async () => {
   try {
     // Connect to PostgreSQL
     await connectDB();
+
+    // Seed admin user if SEED_ADMIN=true and no admin exists
+    if (process.env.SEED_ADMIN === 'true') {
+      const adminExists = await User.findOne({ where: { role: 'admin' } });
+      if (!adminExists) {
+        await User.create({
+          name: 'Admin',
+          email: 'admin@reliefnet.org',
+          password: 'admin123',
+          role: 'admin',
+          campId: null,
+          phone: '',
+          isActive: true,
+        });
+        console.log('Admin user seeded: admin@reliefnet.org / admin123');
+      }
+    }
     
     // Create Express app (initializes rate limiters with Redis)
     const app = await createApp();

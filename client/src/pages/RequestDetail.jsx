@@ -89,7 +89,7 @@ const RequestDetail = () => {
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase">Created</p>
-                <p className="text-slate-900 font-medium">{new Date(request.createdAt).toLocaleDateString()}</p>
+                <p className="text-slate-900 font-medium">{request.createdAt ? new Date(request.createdAt).toLocaleDateString() : '—'}</p>
               </div>
             </div>
 
