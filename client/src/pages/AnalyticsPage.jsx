@@ -38,7 +38,7 @@ const StatCard = ({ title, value, subtitle, icon, color, trend }) => (
   </div>
 );
 
-const PeriodSelector = ({ period, onChange }) => (
+const PeriodSelector = ({ period, onChange, onRefresh }) => (
   <div className="flex items-center gap-2">
     <span className="text-sm text-slate-500">Period:</span>
     <select value={period} onChange={(e) => onChange(e.target.value)} className="input w-auto">
@@ -48,7 +48,7 @@ const PeriodSelector = ({ period, onChange }) => (
       <option value="6m">Last 6 months</option>
       <option value="12m">Last 12 months</option>
     </select>
-    <button onClick={() => {}} className="btn-ghost text-xs">
+    <button onClick={onRefresh} className="btn-ghost text-xs">
       <RefreshCw className="w-4 h-4" /> Refresh
     </button>
   </div>
@@ -97,7 +97,7 @@ const AnalyticsPage = () => {
           <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
           <p className="text-slate-500 mt-1">System-wide insights and performance metrics</p>
         </div>
-        <PeriodSelector period={period} onChange={setPeriod} />
+        <PeriodSelector period={period} onChange={setPeriod} onRefresh={() => fetchAll(period)} />
       </div>
 
       {error && (

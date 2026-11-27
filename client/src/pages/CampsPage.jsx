@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MapPin, Users, Package, FileText, Truck, MoreVertical, Edit, Trash2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, MapPin, Users, Package, FileText, Truck, MoreVertical, Edit, Trash2, Eye, X, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { useCampStore } from '../store/campStore';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
@@ -191,6 +191,12 @@ const CampsPage = () => {
                 {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
               </select>
             </div>
+            <button
+              onClick={() => fetchCamps({ search, status: statusFilter, page, limit: 20 })}
+              className="btn-ghost text-xs"
+            >
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </button>
           </div>
         </div>
       </div>

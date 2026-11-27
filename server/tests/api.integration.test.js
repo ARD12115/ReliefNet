@@ -102,7 +102,7 @@ describe('Inventory API', () => {
         category: 'food',
         itemName: 'Rice bags',
         quantity: 100,
-        unit: 'bags',
+        unit: 'packs',
         minimumThreshold: 20
       });
     expect(res.status).toBe(201);
@@ -177,7 +177,7 @@ describe('Transfer API', () => {
         itemName: 'Rice bags',
         category: 'food',
         quantity: 30,
-        unit: 'bags',
+        unit: 'packs',
         priority: 'high'
       });
     expect(res.status).toBe(201);

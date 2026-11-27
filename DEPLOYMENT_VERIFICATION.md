@@ -74,15 +74,15 @@ curl -X POST http://api.reliefnet.org/api/auth/refresh \
 
 ---
 
-### 2. Rate Limiter Behavior Under Load (Redis Cluster)
+### 2. Rate Limiter Behavior Under Load (Valkey Cluster)
 
-**Status: Code complete with Redis + memory fallback. Load testing requires deployed environment.**
+**Status: Code complete with Valkey + memory fallback. Load testing requires deployed environment.**
 
 **What to test:**
-- Redis connection established on startup
+- Valkey connection established on startup
 - Rate limits shared across multiple backend instances
-- Fallback to memory store when Redis unavailable
-- Graceful shutdown closes Redis connection
+- Fallback to memory store when Valkey unavailable
+- Graceful shutdown closes Valkey connection
 - Rate limit headers present: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`
 
 **Test setup:**
@@ -93,11 +93,11 @@ services:
     deploy:
       replicas: 3
     environment:
-      - REDIS_URL=redis://redis-cluster:6379
+      - REDIS_URL=redis://valkey-cluster:6379
       - REDIS_REQUIRED=true
-  redis-cluster:
-    image: redis:7-alpine
-    command: redis-server --cluster-enabled yes
+  valkey-cluster:
+    image: valkey/valkey:7-alpine
+    command: valkey-server --cluster-enabled yes
 ```
 
 **Test commands:**
@@ -122,16 +122,16 @@ curl -I http://api.reliefnet.org/api/auth/login \
 # RateLimit-Reset: <timestamp>
 ```
 
-**Verify Redis fallback:**
+**Verify Valkey fallback:**
 ```bash
-# Stop Redis
-docker stop redis-cluster
+# Stop Valkey
+docker stop valkey-cluster
 
 # Requests should still work (memory fallback)
 curl -X POST http://api.reliefnet.org/api/auth/login \
   -d '{"email":"test","password":"test"}'
 
-# Logs should show: "Rate limiter: Redis unavailable, falling back to memory store"
+# Logs should show: "Rate limiter: Valkey unavailable, falling back to memory store"
 ```
 
 **Verify graceful shutdown:**
@@ -254,8 +254,8 @@ socket.on('reconnect', (attemptNumber) => {
 | Item | Done? | Notes |
 |------|-------|-------|
 | JWT secrets rotated for production | ☐ | `JWT_SECRET`, `JWT_REFRESH_SECRET` |
-| `REDIS_REQUIRED=true` in production | ☐ | |
-| `REDIS_URL` points to production Redis cluster | ☐ | |
+|| `REDIS_REQUIRED=true` in production | ☐ | |
+|| `REDIS_URL` points to production Valkey cluster | ☐ | |
 | `NODE_ENV=production` | ☐ | |
 | SSL certificates installed | ☐ | Let's Encrypt or similar |
 | Domain DNS configured | ☐ | `api.reliefnet.org` |
@@ -295,9 +295,9 @@ curl https://api.reliefnet.org/api/health
 ## 📝 Notes for Future Iterations
 
 1. **Token version unit tests** - 14 tests passing, covers core logic
-2. **Integration tests** - Need Redis + multiple backend instances (not available in CI)
+2. **Integration tests** - Need Valkey + multiple backend instances (not available in CI)
 3. **Load testing** - Use k6 or Artillery for rate limiter validation
-4. **Chaos engineering** - Test Redis failover, network partitions
+4. **Chaos engineering** - Test Valkey failover, network partitions
 5. **Security audit** - Run OWASP ZAP or similar on production
 6. **Client bundle optimization** - Main bundle 263KB, pages lazy-loaded. Consider further splitting if needed.
 

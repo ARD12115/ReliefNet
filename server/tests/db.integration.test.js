@@ -86,7 +86,7 @@ describe('Database Integration — Aiven PostgreSQL Connectivity', () => {
       itemName: 'Test Rice',
       quantity: 100,
       reservedQuantity: 0,
-      unit: 'bags',
+      unit: 'packs',
       minimumThreshold: 10,
     });
 
@@ -127,7 +127,7 @@ describe('Database Integration — Aiven PostgreSQL Connectivity', () => {
       itemName: 'Test Rice',
       quantityNeeded: 50,
       quantityFulfilled: 0,
-      unit: 'bags',
+      unit: 'packs',
       urgency: 'high',
       status: 'open',
       requestedBy: user.id,
@@ -174,7 +174,7 @@ describe('Database Integration — Aiven PostgreSQL Connectivity', () => {
       itemName: 'Test Rice',
       category: 'food',
       quantity: 25,
-      unit: 'bags',
+      unit: 'packs',
       status: 'proposed',
       priority: 'high',
       createdBy: user.id,

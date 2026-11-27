@@ -22,6 +22,7 @@ A real-time relief coordination platform that matches supply surplus at one reli
 - Docker + docker-compose
 - PostgreSQL / Local PostgreSQL
 - GitHub Actions CI
+- **Valkey** (Redis-compatible) for rate limiting
 
 ## Quick Start
 
@@ -59,9 +60,9 @@ cd server && npm install
 cd ../client && npm install
 ```
 
-2. Start PostgreSQL and Redis (using Docker):
+2. Start PostgreSQL and Valkey (using Docker):
 ```bash
-docker-compose up -d postgres redis osrm
+docker-compose up -d postgres valkey osrm
 ```
 
 3. Configure environment:
@@ -196,7 +197,7 @@ NODE_ENV=development
 PORT=4000
 CLIENT_URL=http://localhost:5173
 DATABASE_URL=postgresql://postgres:***@localhost:5432/reliefnet
-REDIS_URL=redis://localhost:6379
+VALKEY_URL=redis://localhost:6379
 JWT_SECRET=your-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret
 OSRM_URL=http://localhost:5000

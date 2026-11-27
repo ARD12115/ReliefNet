@@ -258,26 +258,35 @@ export const getAnalyticsOverview = catchAsync(async (req, res) => {
 });
 
 export const getRequestsTrend = catchAsync(async (req, res) => {
-  const { startDate, endDate, interval = 'month' } = req.query;
+  const { startDate, endDate, period = '6m' } = req.query;
   
-  const dateFilter = startDate || endDate ? { 
+  // Map period to interval and date filter
+  const periodMap = {
+    '7d': { interval: 'day', days: 7 },
+    '30d': { interval: 'day', days: 30 },
+    '90d': { interval: 'week', days: 90 },
+    '6m': { interval: 'month', days: 180 },
+    '12m': { interval: 'month', days: 365 },
+  };
+  
+  const { interval, days } = periodMap[period] || periodMap['6m'];
+  const dateFormat = interval === 'day' ? 'YYYY-MM-DD' : interval === 'week' ? 'YYYY-WW' : 'YYYY-MM';
+  
+  const dateFilter = {
     createdAt: {
-      ...(startDate && { [Op.gte]: new Date(startDate) }),
-      ...(endDate && { [Op.lte]: new Date(endDate) }),
+      [Op.gte]: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
     }
-  } : { createdAt: { [Op.gte]: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) } };
-
-  const dateFormat = interval === 'day' ? '%Y-%m-%d' : interval === 'week' ? '%Y-%W' : '%Y-%m';
+  };
 
   const requests = await Request.findAll({
     attributes: [
-      [Sequelize.fn('DATE_FORMAT', Sequelize.col('createdAt'), dateFormat), 'period'],
+      [Sequelize.fn('TO_CHAR', Sequelize.col('createdAt'), dateFormat), 'period'],
       [Sequelize.fn('COUNT', '*'), 'total'],
       [Sequelize.fn('SUM', Sequelize.literal("CASE WHEN status = 'fulfilled' THEN 1 ELSE 0 END")), 'fulfilled'],
     ],
     where: dateFilter,
-    group: [Sequelize.fn('DATE_FORMAT', Sequelize.col('createdAt'), dateFormat)],
-    order: [[Sequelize.fn('DATE_FORMAT', Sequelize.col('createdAt'), dateFormat), 'ASC']],
+    group: [Sequelize.fn('TO_CHAR', Sequelize.col('createdAt'), dateFormat)],
+    order: [[Sequelize.fn('TO_CHAR', Sequelize.col('createdAt'), dateFormat), 'ASC']],
     raw: true,
   });
 
@@ -326,13 +335,24 @@ export const getInventoryDistribution = catchAsync(async (req, res) => {
 });
 
 export const getTransferPerformance = catchAsync(async (req, res) => {
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, period = '6m' } = req.query;
+  
+  const periodMap = {
+    '7d': { days: 7 },
+    '30d': { days: 30 },
+    '90d': { days: 90 },
+    '6m': { days: 180 },
+    '12m': { days: 365 },
+  };
+  
+  const { days } = periodMap[period] || periodMap['6m'];
+  
   const dateFilter = startDate || endDate ? { 
     createdAt: {
       ...(startDate && { [Op.gte]: new Date(startDate) }),
       ...(endDate && { [Op.lte]: new Date(endDate) }),
     }
-  } : {};
+  } : { createdAt: { [Op.gte]: new Date(Date.now() - days * 24 * 60 * 60 * 1000) } };
 
   const [byStatus, byPriority, avgTimes] = await Promise.all([
     Transfer.findAll({

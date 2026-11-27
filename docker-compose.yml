@@ -18,15 +18,15 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: reliefnet-redis
+  valkey:
+    image: valkey/valkey:7-alpine
+    container_name: reliefnet-valkey
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - valkey_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -73,12 +73,12 @@ services:
       - PORT=4000
       - CLIENT_URL=http://localhost:5173
       - SEED_ADMIN=true
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://valkey:6379
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
+      valkey:
         condition: service_healthy
     volumes:
       - ./server:/app
@@ -102,4 +102,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
+  valkey_data:
