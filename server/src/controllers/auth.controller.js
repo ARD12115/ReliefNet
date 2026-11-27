@@ -1,10 +1,12 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
 import { catchAsync } from '../middleware/error.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { validatePassword } from '../utils/password.js';
 import { sequelize } from '../config/db.js';
 import User from '../models/User.js';
+import Camp from '../models/Camp.js';
 
 const signAccessToken = (userId, tokenVersion) => {
   return jwt.sign({ userId, tokenVersion }, process.env.JWT_SECRET, {
@@ -241,5 +243,113 @@ export const changePassword = catchAsync(async (req, res) => {
   res.json({
     success: true,
     message: 'Password changed successfully'
+  });
+});
+
+// Admin-only user management
+export const getUsers = catchAsync(async (req, res) => {
+  const { page = 1, limit = 20, search, role, isActive } = req.query;
+  const where = {};
+  if (role) where.role = role;
+  if (isActive !== undefined) where.isActive = isActive === 'true';
+  if (search) {
+    where[Op.or] = [
+      { name: { [Op.iLike]: `%${search}%` } },
+      { email: { [Op.iLike]: `%${search}%` } }
+    ];
+  }
+
+  const skip = (page - 1) * limit;
+  const users = await User.findAll({
+    where,
+    attributes: { exclude: ['password', 'refreshToken'] },
+    offset: skip,
+    limit: parseInt(limit),
+    order: [['createdAt', 'DESC']],
+    include: [{ model: Camp, as: 'camp', attributes: ['id', 'name'] }]
+  });
+
+  const total = await User.count({ where });
+
+  res.json({
+    success: true,
+    data: {
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }
+  });
+});
+
+export const getUser = catchAsync(async (req, res) => {
+  const user = await User.findByPk(req.params.id, {
+    attributes: { exclude: ['password', 'refreshToken'] },
+    include: [{ model: Camp, as: 'camp', attributes: ['id', 'name'] }]
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  res.json({
+    success: true,
+    data: { user: user.toJSON() }
+  });
+});
+
+export const updateUser = catchAsync(async (req, res) => {
+  const { name, phone, role, campId, isActive } = req.body;
+
+  const updateData = {};
+  if (name) updateData.name = name;
+  if (phone) updateData.phone = phone;
+  if (role) updateData.role = role;
+  if (campId !== undefined) updateData.campId = campId || null;
+  if (isActive !== undefined) updateData.isActive = isActive;
+
+  const [, [user]] = await User.update(updateData, {
+    where: { id: req.params.id },
+    returning: true,
+    attributes: { exclude: ['password', 'refreshToken'] },
+    include: [{ model: Camp, as: 'camp', attributes: ['id', 'name'] }]
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // If role or campId changed, revoke tokens to force re-auth
+  if (role || campId !== undefined) {
+    await revokeAllUserTokens(user.id);
+  }
+
+  res.json({
+    success: true,
+    message: 'User updated successfully',
+    data: { user: user.toJSON() }
+  });
+});
+
+export const deleteUser = catchAsync(async (req, res) => {
+  // Soft delete - deactivate user
+  const [, [user]] = await User.update(
+    { isActive: false },
+    { where: { id: req.params.id }, returning: true }
+  );
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Revoke all tokens
+  await revokeAllUserTokens(user.id);
+
+  res.json({
+    success: true,
+    message: 'User deactivated successfully'
   });
 });

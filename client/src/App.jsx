@@ -14,6 +14,10 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const CreateCamp = lazy(() => import('./pages/CreateCamp'));
 const CreateTransfer = lazy(() => import('./pages/CreateTransfer'));
 const RequestDetail = lazy(() => import('./pages/RequestDetail'));
+const CampsPage = lazy(() => import('./pages/CampsPage'));
+const EditCamp = lazy(() => import('./pages/EditCamp'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -59,16 +63,17 @@ const App = () => {
           </Route>
 
           {/* Admin routes */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/camps" element={<div className="card"><div className="card-body text-center py-12">Camps Management - Coming Soon</div></div>} />
-                        <Route path="/admin/camps/new" element={<CreateCamp />} />
-            <Route path="/admin/inventory" element={<InventoryPage />} />
-            <Route path="/admin/requests" element={<RequestsPage />} />
-            <Route path="/admin/transfers" element={<TransfersPage />} />
-            <Route path="/admin/analytics" element={<div className="card"><div className="card-body text-center py-12">Analytics - Coming Soon</div></div>} />
-            <Route path="/admin/users" element={<div className="card"><div className="card-body text-center py-12">Users Management - Coming Soon</div></div>} />
-          </Route>
+                    <Route element={<AdminRoute />}>
+                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/admin/camps" element={<CampsPage />} />
+                      <Route path="/admin/camps/new" element={<CreateCamp />} />
+                      <Route path="/admin/camps/:id/edit" element={<EditCamp />} />
+                      <Route path="/admin/inventory" element={<InventoryPage />} />
+                      <Route path="/admin/requests" element={<RequestsPage />} />
+                      <Route path="/admin/transfers" element={<TransfersPage />} />
+                      <Route path="/admin/analytics" element={<AnalyticsPage />} />
+                      <Route path="/admin/users" element={<UsersPage />} />
+                    </Route>
           
           {/* Default redirect based on role */}
           <Route path="/" element={<Navigate to="/coordinator" replace />} />

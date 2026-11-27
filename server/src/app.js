@@ -12,6 +12,8 @@ import campRoutes from './routes/camp.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
 import requestRoutes from './routes/request.routes.js';
 import transferRoutes from './routes/transfer.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 // Middleware
 import { initializeRateLimiters } from './middleware/rateLimiter.js';
@@ -86,11 +88,13 @@ const createApp = async () => {
   });
 
   // API Routes
-  app.use('/api/auth', authRoutes);
-  app.use('/api/camps', campRoutes);
-  app.use('/api/inventory', inventoryRoutes);
-  app.use('/api/requests', requestRoutes);
-  app.use('/api/transfers', transferRoutes);
+    app.use('/api/auth', authRoutes);
+    app.use('/api/camps', campRoutes);
+    app.use('/api/inventory', inventoryRoutes);
+    app.use('/api/requests', requestRoutes);
+    app.use('/api/transfers', transferRoutes);
+    app.use('/api/admin/analytics', analyticsRoutes);
+    app.use('/api/admin', adminRoutes);
 
   // 404 handler
   app.use(notFound);
