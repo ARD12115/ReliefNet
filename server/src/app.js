@@ -1,4 +1,5 @@
 import express from 'express';
+import './models/associations.js';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -21,6 +22,7 @@ const createApp = async () => {
   const { apiRateLimiter } = await initializeRateLimiters();
   
   const app = express();
+  app.set('trust proxy', 'loopback');
 
   // Security middleware with enhanced headers
   app.use(helmet({

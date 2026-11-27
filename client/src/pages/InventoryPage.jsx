@@ -9,7 +9,8 @@ import {
   Trash2,
   AlertTriangle,
   XCircle,
-  TrendingDown
+  TrendingDown,
+  Package
 } from 'lucide-react';
 import { useInventoryStore } from '../store/inventoryStore';
 import { useCampStore } from '../store/campStore';
@@ -224,7 +225,7 @@ const InventoryPage = () => {
                           <span className="badge badge-success">In Stock</span>
                         )}
                       </td>
-                      <td className="text-slate-600">{item.campId?.name || 'N/A'}</td>
+                      <td className="text-slate-600">{item.camp?.name || 'N/A'}</td>
                       <td>
                         <div className="flex items-center gap-1">
                           <button

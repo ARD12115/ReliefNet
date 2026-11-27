@@ -9,12 +9,13 @@ import { catchAsync } from '../middleware/error.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { getSocketService } from '../services/socket.service.js';
 import { getRoutingService } from '../services/routing.service.js';
+import '../models/associations.js';
 
 const CAMP_INCLUDE = { model: Camp, as: 'fromCamp', attributes: ['id', 'name', 'latitude', 'longitude'] };
 const TO_CAMP_INCLUDE = { model: Camp, as: 'toCamp', attributes: ['id', 'name', 'latitude', 'longitude'] };
 const REQUEST_INCLUDE = { model: Request, as: 'request', attributes: ['id', 'itemName', 'category', 'urgency', 'quantityNeeded', 'quantityFulfilled'] };
-const ASSIGNEE_INCLUDE = { model: User, as: 'assignedTo', attributes: ['id', 'name', 'email', 'phone'] };
-const CREATOR_INCLUDE = { model: User, as: 'createdBy', attributes: ['id', 'name', 'email'] };
+const ASSIGNEE_INCLUDE = { model: User, as: 'assignee', attributes: ['id', 'name', 'email', 'phone'] };
+const CREATOR_INCLUDE = { model: User, as: 'creator', attributes: ['id', 'name', 'email'] };
 
 export const getTransfers = catchAsync(async (req, res) => {
   const { fromCampId, toCampId, requestId, status, priority, page = 1, limit = 20 } = req.query;

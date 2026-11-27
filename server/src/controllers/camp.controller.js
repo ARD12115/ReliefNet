@@ -4,6 +4,7 @@ import InventoryItem from '../models/InventoryItem.js';
 import Request from '../models/Request.js';
 import Transfer from '../models/Transfer.js';
 import User from '../models/User.js';
+import '../models/associations.js';
 import { catchAsync } from '../middleware/error.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { getSocketService } from '../services/socket.service.js';
@@ -57,7 +58,7 @@ export const getCamps = catchAsync(async (req, res) => {
   const skip = (page - 1) * limit;
   const camps = await Camp.findAll({
     where: finalWhere,
-    include: [{ model: User, as: 'managedBy', attributes: ['name', 'email'] }],
+    include: [{ model: User, as: 'manager', attributes: ['name', 'email'] }],
     offset: skip,
     limit: parseInt(limit),
     order: [['createdAt', 'DESC']]

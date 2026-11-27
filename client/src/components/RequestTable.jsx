@@ -36,7 +36,7 @@ const RequestTable = ({ requests, onView, onEdit, onCancel }) => {
                   <span className="font-medium text-slate-900">{request.itemName}</span>
                 </div>
               </td>
-              <td className="text-slate-600">{request.campId?.name || 'N/A'}</td>
+              <td className="text-slate-600">{request.camp?.name || 'N/A'}</td>
               <td>
                 <span className={`badge capitalize`} style={{ 
                   backgroundColor: getCategoryColor(request.category).split(' ')[1], 

@@ -1,9 +1,12 @@
 import InventoryItem from '../models/InventoryItem.js';
 import Request from '../models/Request.js';
 import Transfer from '../models/Transfer.js';
+import Camp from '../models/Camp.js';
 import { getRoutingService } from './routing.service.js';
 import { getSocketService } from './socket.service.js';
 import { Op } from 'sequelize';
+import '../models/associations.js';
+
 
 class MatchingService {
   constructor() {
@@ -33,7 +36,7 @@ class MatchingService {
         where: {
           status: { [Op.in]: ['open', 'partial', 'matched'] }
         },
-        include: [{ model: require('../models/Camp.js').default, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
+        include: [{ model: Camp, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
       });
 
       console.log(`Found ${openRequests.length} open requests to match`);
@@ -93,7 +96,7 @@ class MatchingService {
 
     const inventoryItems = await InventoryItem.findAll({
       where,
-      include: [{ model: require('../models/Camp.js').default, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
+      include: [{ model: Camp, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
     });
 
     // Filter for camps with actual surplus and active status
@@ -249,8 +252,8 @@ class MatchingService {
       const socketService = getSocketService();
       const populatedTransfer = await Transfer.findByPk(transfer.id, {
         include: [
-          { model: require('../models/Camp.js').default, as: 'fromCamp', attributes: ['id', 'name', 'latitude', 'longitude'] },
-          { model: require('../models/Camp.js').default, as: 'toCamp', attributes: ['id', 'name', 'latitude', 'longitude'] },
+          { model: Camp, as: 'fromCamp', attributes: ['id', 'name', 'latitude', 'longitude'] },
+          { model: Camp, as: 'toCamp', attributes: ['id', 'name', 'latitude', 'longitude'] },
           { model: Request, as: 'request', attributes: ['id', 'itemName', 'category', 'urgency'] }
         ]
       });
@@ -293,7 +296,7 @@ class MatchingService {
         itemName,
         status: { [Op.in]: ['open', 'partial', 'matched'] }
       },
-      include: [{ model: require('../models/Camp.js').default, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
+      include: [{ model: Camp, as: 'camp', attributes: ['id', 'name', 'latitude', 'longitude', 'status'] }]
     });
 
     for (const request of requests) {

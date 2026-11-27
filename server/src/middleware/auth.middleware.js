@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import '../models/associations.js';
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -16,7 +17,7 @@ export const authenticate = async (req, res, next) => {
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    const user = await User.findById(decoded.userId).select('-password -refreshToken');
+    const user = await User.findByPk(decoded.userId);
     
     if (!user || !user.isActive) {
       return res.status(401).json({ 
@@ -34,7 +35,7 @@ export const authenticate = async (req, res, next) => {
     }
     
     req.user = user;
-    req.userId = user._id;
+    req.userId = user.id;
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -87,7 +88,7 @@ export const optionalAuth = async (req, res, next) => {
     
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password -refreshToken');
+    const user = await User.findByPk(decoded.userId);
     
     if (user && user.isActive) {
       // Check token version for invalidation
@@ -97,7 +98,7 @@ export const optionalAuth = async (req, res, next) => {
         return next();
       }
       req.user = user;
-      req.userId = user._id;
+      req.userId = user.id;
     }
     next();
   } catch (error) {

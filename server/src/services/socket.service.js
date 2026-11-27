@@ -34,14 +34,14 @@ class SocketService {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.userId).select('-password -refreshToken');
+        const user = await User.findByPk(decoded.userId);
         
         if (!user || !user.isActive) {
           return next(new Error('User not found or deactivated'));
         }
 
         socket.user = user;
-        socket.userId = user._id.toString();
+        socket.userId = user.id.toString();
         next();
       } catch (error) {
         next(new Error('Invalid token'));

@@ -1,6 +1,8 @@
 import { Op, Sequelize } from 'sequelize';
 import InventoryItem from '../models/InventoryItem.js';
 import Camp from '../models/Camp.js';
+import User from '../models/User.js';
+import '../models/associations.js';
 import { catchAsync } from '../middleware/error.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { getSocketService } from '../services/socket.service.js';
@@ -64,7 +66,7 @@ export const getInventory = catchAsync(async (req, res) => {
     where,
     include: [
       { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude'] },
-      { model: require('../models/User.js').default, as: 'lastUpdatedBy', attributes: ['name'] }
+      { model: User, as: 'updater', attributes: ['name'] }
     ],
     offset: skip,
     limit: parseInt(limit),
@@ -96,7 +98,7 @@ export const getCampInventory = catchAsync(async (req, res) => {
 
   const items = await InventoryItem.findAll({
     where: { campId },
-    include: [{ model: require('../models/User.js').default, as: 'lastUpdatedBy', attributes: ['name'] }],
+    include: [{ model: User, as: 'updater', attributes: ['name'] }],
     order: [['category', 'ASC'], ['itemName', 'ASC']]
   });
 
@@ -113,8 +115,8 @@ export const getCampInventory = catchAsync(async (req, res) => {
       'category',
       [Sequelize.fn('COUNT', '*'), 'totalItems'],
       [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
-      [Sequelize.literal('SUM(CASE WHEN quantity <= minimumThreshold THEN 1 ELSE 0 END)'), 'lowStockCount'],
-      [Sequelize.literal('SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount']
+      [Sequelize.literal('SUM(CASE WHEN "quantity" <= "minimumThreshold" THEN 1 ELSE 0 END)'), 'lowStockCount'],
+      [Sequelize.literal('SUM(CASE WHEN "quantity" = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount']
     ],
     where: { campId },
     group: ['category'],
@@ -158,7 +160,7 @@ export const updateInventoryItem = catchAsync(async (req, res) => {
   const [, [updatedItem]] = await InventoryItem.update(updateData, {
     where: { id: req.params.id },
     returning: true,
-    include: [{ model: Camp, as: 'camp', attributes: ['id', 'name'] }, { model: require('../models/User.js').default, as: 'lastUpdatedBy', attributes: ['name'] }]
+    include: [{ model: Camp, as: 'camp', attributes: ['id', 'name'] }, { model: User, as: 'updater', attributes: ['name'] }]
   });
 
   const socketService = getSocketService();
@@ -218,9 +220,9 @@ export const getInventorySummary = catchAsync(async (req, res) => {
       'category',
       [Sequelize.fn('COUNT', '*'), 'totalItems'],
       [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
-      [Sequelize.literal('SUM(CASE WHEN quantity <= minimumThreshold THEN 1 ELSE 0 END)'), 'lowStockCount'],
-      [Sequelize.literal('SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount'],
-      [Sequelize.literal('SUM(quantity - minimumThreshold)'), 'totalSurplus']
+      [Sequelize.literal('SUM(CASE WHEN "quantity" <= "minimumThreshold" THEN 1 ELSE 0 END)'), 'lowStockCount'],
+      [Sequelize.literal('SUM(CASE WHEN "quantity" = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount'],
+      [Sequelize.literal('SUM("quantity" - "minimumThreshold")'), 'totalSurplus']
     ],
     where: match,
     group: ['category'],
@@ -231,10 +233,10 @@ export const getInventorySummary = catchAsync(async (req, res) => {
   const overall = await InventoryItem.findAll({
     attributes: [
       [Sequelize.fn('COUNT', '*'), 'totalItems'],
-      [Sequelize.literal('COUNT(DISTINCT category)'), 'totalCategories'],
+      [Sequelize.literal('COUNT(DISTINCT "category")'), 'totalCategories'],
       [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalQuantity'],
-      [Sequelize.literal('SUM(CASE WHEN quantity <= minimumThreshold THEN 1 ELSE 0 END)'), 'lowStockCount'],
-      [Sequelize.literal('SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount']
+      [Sequelize.literal('SUM(CASE WHEN "quantity" <= "minimumThreshold" THEN 1 ELSE 0 END)'), 'lowStockCount'],
+      [Sequelize.literal('SUM(CASE WHEN "quantity" = 0 THEN 1 ELSE 0 END)'), 'outOfStockCount']
     ],
     where: match,
     raw: true

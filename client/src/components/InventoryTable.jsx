@@ -52,7 +52,7 @@ const InventoryTable = ({ items, onEdit, onDelete, onView }) => {
                   <span className="badge badge-success">In Stock</span>
                 )}
               </td>
-              <td className="text-slate-600">{item.campId?.name || 'N/A'}</td>
+              <td className="text-slate-600">{item.camp?.name || 'N/A'}</td>
               <td>
                 <div className="flex items-center gap-1">
                   {onView && (

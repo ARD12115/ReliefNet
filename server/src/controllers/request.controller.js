@@ -3,6 +3,7 @@ import Request from '../models/Request.js';
 import Camp from '../models/Camp.js';
 import Transfer from '../models/Transfer.js';
 import User from '../models/User.js';
+import '../models/associations.js';
 import { catchAsync } from '../middleware/error.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { getSocketService } from '../services/socket.service.js';
@@ -37,7 +38,7 @@ export const createRequest = catchAsync(async (req, res) => {
   const populatedRequest = await Request.findByPk(request.id, {
     include: [
       { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude'] },
-      { model: User, as: 'requestedBy', attributes: ['name', 'email'] }
+      { model: User, as: 'requester', attributes: ['name', 'email'] }
     ]
   });
 
@@ -87,7 +88,7 @@ export const getRequests = catchAsync(async (req, res) => {
     where,
     include: [
       { model: Camp, as: 'camp', attributes: ['name', 'latitude', 'longitude', 'status'] },
-      { model: User, as: 'requestedBy', attributes: ['name', 'email'] }
+      { model: User, as: 'requester', attributes: ['name', 'email'] }
     ],
     offset: skip,
     limit: parseInt(limit),
